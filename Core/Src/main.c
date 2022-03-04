@@ -60,9 +60,17 @@ static void MX_USART2_UART_Init(void);
 uint8_t myTxData[13] = "@,21593698,!\n";
 uint8_t myRxData[1];
 uint8_t echo_flag = 0;
+uint8_t toggle_flag = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	echo_flag = 1;
+}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == mid_btn_Pin)
+	{
+		toggle_flag = 1;
+	}
 }
 /* USER CODE END 0 */
 
@@ -107,9 +115,13 @@ int main(void)
 	  if(echo_flag)
 	  {
 		HAL_UART_Transmit(&huart2, myRxData, 1, 10);
-		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 		HAL_UART_Receive_IT(&huart2, myRxData, 1);
 		echo_flag = 0;
+	  }
+	  if(toggle_flag)
+	  {
+		  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		  toggle_flag = 0;
 	  }
     /* USER CODE END WHILE */
 
@@ -227,6 +239,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : mid_btn_Pin */
+  GPIO_InitStruct.Pin = mid_btn_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(mid_btn_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 
