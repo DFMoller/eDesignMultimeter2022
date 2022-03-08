@@ -73,12 +73,14 @@ uint8_t btn_up_flag = 0;
 uint8_t btn_left_flag = 0;
 uint8_t btn_down_flag = 0;
 uint8_t adc_timer_flag = 0;
+uint32_t last_ticks = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	echo_flag = 1;
 }
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	last_ticks = HAL_GetTick();
 	if(GPIO_Pin == btn_mid_Pin)
 	{
 		btn_mid_flag = 1;
@@ -153,27 +155,58 @@ int main(void)
 	  }
 	  if(btn_up_flag)
 	  {
-		  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-		  btn_up_flag = 0;
+		  if(HAL_GetTick() - last_ticks >= 2)
+		  {
+			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
+			  {
+				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+			  }
+			  btn_up_flag = 0;
+		  }
 	  }
 	  else if(btn_left_flag)
 	  {
-		  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-		  btn_left_flag = 0;
+		  if(HAL_GetTick() - last_ticks >= 2)
+		  {
+			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
+			  {
+				  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+			  }
+			  btn_left_flag = 0;
+		  }
 	  }
 	  else if(btn_down_flag)
 	  {
-		  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
-		  btn_down_flag = 0;
+		  if(HAL_GetTick() - last_ticks >= 2)
+		  {
+			  if(HAL_GPIO_ReadPin(btn_down_GPIO_Port, btn_down_Pin))
+			  {
+				  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+			  }
+			  btn_down_flag = 0;
+		  }
 	  }
 	  else if(btn_right_flag)
 	  {
-		  HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-		  btn_right_flag = 0;
+		  if(HAL_GetTick() - last_ticks >= 2)
+		  {
+			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
+			  {
+				  HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
+			  }
+			  btn_right_flag = 0;
+		  }
 	  }
 	  else if(btn_mid_flag)
 	  {
-		  btn_mid_flag = 0;
+		  if(HAL_GetTick() - last_ticks >= 2)
+		  {
+			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
+			  {
+				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+			  }
+			  btn_mid_flag = 0;
+		  }
 	  }
 
 	  // ADC TIM16 interrupt
@@ -185,11 +218,9 @@ int main(void)
 		  HAL_ADC_Stop(&hadc1);
 		  millivolts = raw*3300/4095;
 		  sprintf(msg, "%lu\n", millivolts);
-		  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+//		  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  adc_timer_flag = 0;
 	  }
-
-	  HAL_Delay(1);
 
     /* USER CODE END WHILE */
 
