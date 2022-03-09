@@ -116,6 +116,7 @@ int main(void)
 	char msg[10];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
+//	uint16_t adc_calibration = 122;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -220,13 +221,13 @@ int main(void)
 			  // Do calculations every 1000 readings
 			  uint32_t total = 0;
 			  uint16_t average = 0;
-			  for(int x; x < 1000; x++)
+			  for(int x = 0; x < 1000; x++)
 			  {
 				  total += adc_array[x];
 			  }
 			  average = total/1000;
-//			  sprintf(msg, "%u\n", average);
-//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			  sprintf(msg, "%u\n", average);
+			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
 		  else
 		  {
@@ -237,8 +238,6 @@ int main(void)
 			  millivolts = raw*3300/4095;
 			  adc_array[adc_count] = millivolts;
 			  adc_count++;
-			  sprintf(msg, "%u\n", millivolts);
-//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
 
 		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
