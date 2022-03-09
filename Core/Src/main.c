@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -113,7 +114,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint16_t raw;
 	uint16_t millivolts;
-	char msg[10];
+	char msg[100];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
 //	uint16_t adc_calibration = 122;
@@ -220,13 +221,41 @@ int main(void)
 			  adc_count = 0;
 			  // Do calculations every 1000 readings
 			  uint32_t total = 0;
-			  uint16_t average = 0;
+			  uint16_t mean = 0;
+			  uint16_t max = 0;
+			  uint16_t min = adc_array[99]; // arbitrary value
+			  uint16_t margin = 0;
+			  int16_t diff = 0;
+			  int16_t prev_diff = 0;
+			  uint16_t mid_passes = 0;
+			  // 1000 measurements at 5kHz take 200ms
 			  for(int x = 0; x < 1000; x++)
 			  {
 				  total += adc_array[x];
+				  if(adc_array[x] > max)
+				  {
+					  max = adc_array[x];
+				  }
+				  else if(adc_array[x] < min)
+				  {
+					  min = adc_array[x];
+				  }
 			  }
-			  average = total/1000;
-			  sprintf(msg, "%u\n", average);
+			  mean = total/1000;
+			  for(int x = 0; x < 1000; x++)
+			  {
+				  // Calculate frequency
+				  diff = adc_array[x] - mean;
+				  if((diff * prev_diff) < 0)
+				  {
+					  mid_passes++;
+				  }
+				  prev_diff = diff;
+			  }
+			  float period = 0.2/(0.5*mid_passes);
+			  float frequency = 1/period;
+			  uint16_t peak_to_peak = max - min;
+			  sprintf(msg, "Mean: %u\nMax: %u\nMin: %u\n\n", mean, max, min);
 			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
 		  else
