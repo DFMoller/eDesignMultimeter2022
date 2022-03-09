@@ -112,8 +112,10 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 	uint16_t raw;
-	uint32_t millivolts;
+	uint16_t millivolts;
 	char msg[10];
+	uint16_t adc_array[1000];
+	uint16_t adc_count = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -212,13 +214,34 @@ int main(void)
 	  // ADC TIM16 interrupt
 	  if(adc_timer_flag)
 	  {
-		  HAL_ADC_Start(&hadc1);
-		  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-		  raw = HAL_ADC_GetValue(&hadc1);
-		  HAL_ADC_Stop(&hadc1);
-		  millivolts = raw*3300/4095;
-		  sprintf(msg, "%lu\n", millivolts);
-//		  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		  if(adc_count > 999)
+		  {
+			  adc_count = 0;
+			  // Do calculations every 1000 readings
+			  uint32_t total = 0;
+			  uint16_t average = 0;
+			  for(int x; x < 1000; x++)
+			  {
+				  total += adc_array[x];
+			  }
+			  average = total/1000;
+//			  sprintf(msg, "%u\n", average);
+//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		  }
+		  else
+		  {
+			  HAL_ADC_Start(&hadc1);
+			  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+			  raw = HAL_ADC_GetValue(&hadc1);
+			  HAL_ADC_Stop(&hadc1);
+			  millivolts = raw*3300/4095;
+			  adc_array[adc_count] = millivolts;
+			  adc_count++;
+			  sprintf(msg, "%u\n", millivolts);
+//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		  }
+
+		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
 		  adc_timer_flag = 0;
 	  }
 
@@ -357,7 +380,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 72-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 1000 - 1;
+  htim16.Init.Period = 200 - 1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
