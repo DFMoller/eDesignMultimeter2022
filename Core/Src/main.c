@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,14 +61,18 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint8_t changeDisplayState(uint8_t code);
+bool uartRxComplete(uint8_t last_byte);
+void interpret_rx_message(uint8_t *rx_array, uint8_t length);
+void request_measurement(uint8_t parameter);
+void request_status(uint8_t output);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t myTxData[13] = "@,21593698,!\n";
-uint8_t myRxData[1];
-uint8_t echo_flag = 0;
+
+uint8_t std_num[13] = "@,21593698,!\n";
+uint8_t message_received = 0;
 uint8_t btn_mid_flag = 0;
 uint8_t btn_right_flag = 0;
 uint8_t btn_up_flag = 0;
@@ -75,10 +80,18 @@ uint8_t btn_left_flag = 0;
 uint8_t btn_down_flag = 0;
 uint8_t adc_timer_flag = 0;
 uint32_t last_ticks = 0;
+
+// VARIABLES OF INTEREST
+uint16_t amplitude = 0;
+float frequency = 0;
+float period = 0;
+uint16_t offset = 0;
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	echo_flag = 1;
+	message_received = 1;
 }
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	last_ticks = HAL_GetTick();
@@ -103,6 +116,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		btn_down_flag = 1;
 	}
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -117,7 +131,10 @@ int main(void)
 	char msg[100];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
-//	uint16_t adc_calibration = 122;
+	uint8_t display_state = 1; // Default of 1 is Measurement Display State
+	uint8_t rx_byte[1];
+	uint8_t rx_bytes[10] = {0};
+	uint8_t rx_bytes_counter = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -142,20 +159,35 @@ int main(void)
   MX_TIM16_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Transmit(&huart2, myTxData, 13, 10);
-  HAL_UART_Receive_IT(&huart2, myRxData, 1);
+  HAL_UART_Transmit(&huart2, std_num, 13, 10);
+  HAL_UART_Receive_IT(&huart2, rx_byte, 1);
   HAL_TIM_Base_Start_IT(&htim16);
+
+
+  // Set up the default state of the device
+//  display_state = changeDisplayState(1); // 1 == Measurement mode
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(echo_flag)
+	  if(message_received && rx_byte[0] != '\n')
 	  {
-		HAL_UART_Transmit(&huart2, myRxData, 1, 10);
-		HAL_UART_Receive_IT(&huart2, myRxData, 1);
-		echo_flag = 0;
+		  rx_bytes[rx_bytes_counter] = rx_byte[0];
+		  if(rx_bytes_counter == 0 && rx_byte[0] == '@'){
+			  rx_bytes_counter++;
+		  } else if(rx_bytes_counter > 0){
+			  rx_bytes_counter++;
+			  if(uartRxComplete(rx_byte[0]))
+			  {
+				  interpret_rx_message(rx_bytes, rx_bytes_counter);
+				  rx_bytes_counter = 0;
+			  }
+		  }
+		  HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+		  message_received = 0;
 	  }
 	  if(btn_up_flag)
 	  {
@@ -207,6 +239,7 @@ int main(void)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {
+				  // Toggle Measurement Mode
 				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 			  }
 			  btn_mid_flag = 0;
@@ -218,13 +251,11 @@ int main(void)
 	  {
 		  if(adc_count > 999)
 		  {
-			  adc_count = 0;
 			  // Do calculations every 1000 readings
+			  adc_count = 0;
 			  uint32_t total = 0;
-			  uint16_t mean = 0;
 			  uint16_t max = 0;
 			  uint16_t min = adc_array[99]; // arbitrary value
-			  uint16_t margin = 0;
 			  int16_t diff = 0;
 			  int16_t prev_diff = 0;
 			  uint16_t mid_passes = 0;
@@ -241,22 +272,22 @@ int main(void)
 					  min = adc_array[x];
 				  }
 			  }
-			  mean = total/1000;
+			  offset = total/1000;
 			  for(int x = 0; x < 1000; x++)
 			  {
 				  // Calculate frequency
-				  diff = adc_array[x] - mean;
+				  diff = adc_array[x] - offset;
 				  if((diff * prev_diff) < 0)
 				  {
 					  mid_passes++;
 				  }
 				  prev_diff = diff;
 			  }
-			  float period = 0.2/(0.5*mid_passes);
-			  float frequency = 1/period;
-			  uint16_t peak_to_peak = max - min;
-			  sprintf(msg, "Mean: %u\nMax: %u\nMin: %u\n\n", mean, max, min);
-			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			  period = 0.2/(0.5*mid_passes);
+			  frequency = 1/period;
+			  amplitude = max - min;
+			  sprintf(msg, "Offset: %u\nMax: %u\nMin: %u\n \n", offset, max, min);
+//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
 		  else
 		  {
@@ -534,6 +565,157 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		adc_timer_flag = 1;
 	}
 }
+
+uint8_t changeDisplayState(uint8_t code)
+{
+	if (code == 0)
+	{
+		// Change to Menu Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+		return 0;
+	}
+	else if (code == 1)
+	{
+		// Change to Measurement Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+		return 1;
+	}
+	else if (code == 2)
+	{
+		// Change to Output Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+		return 2;
+	}
+	else
+	{
+		// An error has occurred
+		return 3;
+	}
+}
+
+bool uartRxComplete(uint8_t last_byte)
+{
+	if(last_byte == '!')
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void interpret_rx_message(uint8_t *rx_array, uint8_t length)
+{
+//	for(int x = 0; x < length; x++)
+//	{
+//		// pass
+//	}
+
+	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+
+	if(length > 7)
+	{
+		if(rx_array[2] == '*')
+		{
+			// Requests
+			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			switch(rx_array[4])
+			{
+				case 'm':
+					// Request Measurement
+					request_measurement(rx_array[6]);
+					break;
+
+				case 's':
+					// Request Status
+					request_status(rx_array[6]);
+
+				default:
+					// Problems
+					break;
+			}
+		}
+		else if(rx_array[2] == '$')
+		{
+			// Set
+			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+			uint8_t key1 = rx_array[4];
+			uint8_t key2 = rx_array[5];
+			if(key1 == 'D' && key2 == 'V'){
+				// DC Voltage
+			} else if (key1 == 'A' && key2 == 'V'){
+				// AC Voltage
+			} else if (key1 == 'D' && key2 == 'I'){
+				// AC Voltage
+			} else if (key1 == 'A' && key2 == 'I'){
+				// AC Voltage
+			} else if (key1 == 'T' && key2 == 'C'){
+				// AC Voltage
+			}
+		}
+		else
+		{
+			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
+		}
+	}
+}
+
+void request_measurement(uint8_t parameter)
+{
+	char msg[20];
+	switch(parameter){
+		case 't':
+			// Type
+			break;
+		case 'a':
+			// Amplitude (peak-to-peak)
+			sprintf(msg, "@,m,a,%u,!\n", amplitude);
+			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			break;
+		case 'o':
+			// Offset
+			sprintf(msg, "@,m,a,%u,!\n", offset);
+			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			break;
+		case 'f':
+			// Frequency
+			sprintf(msg, "@,m,a,%lf,!\n", frequency);
+			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			break;
+		case 'd':
+			// Duty Cycle
+			break;
+		case 'c':
+			// Temperature
+			break;
+		default:
+			// Problems
+			break;
+	}
+}
+
+void request_status(uint8_t output)
+{
+	if(output == '1'){
+		// Output On
+	}else if (output == '0'){
+		// Output Off
+	}
+
+}
+
 /* USER CODE END 4 */
 
 /**
