@@ -287,17 +287,16 @@ int main(void)
 			  {
 				  // Calculate frequency
 				  diff = adc_array[x] - offset;
-				  if((diff * prev_diff) < 0)
+				  if(diff > 0 && prev_diff < 0)
 				  {
 					  mid_passes++;
 				  }
 				  prev_diff = diff;
 			  }
-			  period = 0.2/(0.5*mid_passes);
-//			  frequency = 1/period;
-			  frequency = 5000;
+			  period = 200000/(mid_passes);
+			  frequency = 1000000/period;
 			  amplitude = max - min;
-			  sprintf(msg, "Offset: %u\nMax: %u\nMin: %u\n \n", offset, max, min);
+//			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
 //			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
 		  else
