@@ -196,7 +196,7 @@ int main(void)
 	  }
 	  if(btn_up_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
 			  {
@@ -207,7 +207,7 @@ int main(void)
 	  }
 	  else if(btn_left_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
 			  {
@@ -218,7 +218,7 @@ int main(void)
 	  }
 	  else if(btn_down_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_down_GPIO_Port, btn_down_Pin))
 			  {
@@ -229,7 +229,7 @@ int main(void)
 	  }
 	  else if(btn_right_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
 			  {
@@ -240,7 +240,7 @@ int main(void)
 	  }
 	  else if(btn_mid_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {

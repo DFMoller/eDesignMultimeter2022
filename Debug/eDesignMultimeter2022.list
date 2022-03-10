@@ -409,13 +409,13 @@ int main(void)
  8000412:	2b00      	cmp	r3, #0
  8000414:	d010      	beq.n	8000438 <main+0x108>
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
  8000416:	f000 ffed 	bl	80013f4 <HAL_GetTick>
  800041a:	4602      	mov	r2, r0
  800041c:	4b98      	ldr	r3, [pc, #608]	; (8000680 <main+0x350>)
  800041e:	681b      	ldr	r3, [r3, #0]
  8000420:	1ad3      	subs	r3, r2, r3
- 8000422:	2b03      	cmp	r3, #3
+ 8000422:	2b36      	cmp	r3, #54	; 0x36
  8000424:	d96d      	bls.n	8000502 <main+0x1d2>
 		  {
 			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
@@ -438,13 +438,13 @@ int main(void)
  800043c:	2b00      	cmp	r3, #0
  800043e:	d010      	beq.n	8000462 <main+0x132>
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
  8000440:	f000 ffd8 	bl	80013f4 <HAL_GetTick>
  8000444:	4602      	mov	r2, r0
  8000446:	4b8e      	ldr	r3, [pc, #568]	; (8000680 <main+0x350>)
  8000448:	681b      	ldr	r3, [r3, #0]
  800044a:	1ad3      	subs	r3, r2, r3
- 800044c:	2b03      	cmp	r3, #3
+ 800044c:	2b36      	cmp	r3, #54	; 0x36
  800044e:	d958      	bls.n	8000502 <main+0x1d2>
 		  {
 			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
@@ -467,13 +467,13 @@ int main(void)
  8000466:	2b00      	cmp	r3, #0
  8000468:	d010      	beq.n	800048c <main+0x15c>
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
  800046a:	f000 ffc3 	bl	80013f4 <HAL_GetTick>
  800046e:	4602      	mov	r2, r0
  8000470:	4b83      	ldr	r3, [pc, #524]	; (8000680 <main+0x350>)
  8000472:	681b      	ldr	r3, [r3, #0]
  8000474:	1ad3      	subs	r3, r2, r3
- 8000476:	2b03      	cmp	r3, #3
+ 8000476:	2b36      	cmp	r3, #54	; 0x36
  8000478:	d943      	bls.n	8000502 <main+0x1d2>
 		  {
 			  if(HAL_GPIO_ReadPin(btn_down_GPIO_Port, btn_down_Pin))
@@ -496,13 +496,13 @@ int main(void)
  8000490:	2b00      	cmp	r3, #0
  8000492:	d010      	beq.n	80004b6 <main+0x186>
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
  8000494:	f000 ffae 	bl	80013f4 <HAL_GetTick>
  8000498:	4602      	mov	r2, r0
  800049a:	4b79      	ldr	r3, [pc, #484]	; (8000680 <main+0x350>)
  800049c:	681b      	ldr	r3, [r3, #0]
  800049e:	1ad3      	subs	r3, r2, r3
- 80004a0:	2b03      	cmp	r3, #3
+ 80004a0:	2b36      	cmp	r3, #54	; 0x36
  80004a2:	d92e      	bls.n	8000502 <main+0x1d2>
 		  {
 			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
@@ -525,13 +525,13 @@ int main(void)
  80004ba:	2b00      	cmp	r3, #0
  80004bc:	d021      	beq.n	8000502 <main+0x1d2>
 	  {
-		  if(HAL_GetTick() - last_ticks >= 4)
+		  if(HAL_GetTick() - last_ticks >= 55)
  80004be:	f000 ff99 	bl	80013f4 <HAL_GetTick>
  80004c2:	4602      	mov	r2, r0
  80004c4:	4b6e      	ldr	r3, [pc, #440]	; (8000680 <main+0x350>)
  80004c6:	681b      	ldr	r3, [r3, #0]
  80004c8:	1ad3      	subs	r3, r2, r3
- 80004ca:	2b03      	cmp	r3, #3
+ 80004ca:	2b36      	cmp	r3, #54	; 0x36
  80004cc:	d919      	bls.n	8000502 <main+0x1d2>
 		  {
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
