@@ -306,6 +306,7 @@ int main(void)
 			  raw = HAL_ADC_GetValue(&hadc1);
 			  HAL_ADC_Stop(&hadc1);
 			  millivolts = raw*3300/4095;
+			  millivolts += 100*millivolts/1000; // Calibration
 			  adc_array[adc_count] = millivolts;
 			  adc_count++;
 		  }
