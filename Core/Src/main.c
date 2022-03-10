@@ -81,11 +81,16 @@ uint8_t btn_down_flag = 0;
 uint8_t adc_timer_flag = 0;
 uint32_t last_ticks = 0;
 
+uint8_t rx_byte[1];
+
 // VARIABLES OF INTEREST
 uint16_t amplitude = 0;
-float frequency = 0;
-float period = 0;
+uint16_t frequency = 0;
+uint16_t period = 0;
 uint16_t offset = 0;
+uint8_t measurement_mode = 0;
+uint8_t display_state = 1; // Default of 1 is Measurement Display State
+uint8_t output_active = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -131,8 +136,8 @@ int main(void)
 	char msg[100];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
-	uint8_t display_state = 1; // Default of 1 is Measurement Display State
-	uint8_t rx_byte[1];
+
+
 	uint8_t rx_bytes[10] = {0};
 	uint8_t rx_bytes_counter = 0;
   /* USER CODE END 1 */
@@ -165,7 +170,7 @@ int main(void)
 
 
   // Set up the default state of the device
-//  display_state = changeDisplayState(1); // 1 == Measurement mode
+  display_state = changeDisplayState(1); // 1 == Measurement mode
 
   /* USER CODE END 2 */
 
@@ -191,56 +196,61 @@ int main(void)
 	  }
 	  if(btn_up_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 2)
+		  if(HAL_GetTick() - last_ticks >= 4)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
 			  {
-				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+//				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 			  }
 			  btn_up_flag = 0;
 		  }
 	  }
 	  else if(btn_left_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 2)
+		  if(HAL_GetTick() - last_ticks >= 4)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
 			  {
-				  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//				  HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 			  }
 			  btn_left_flag = 0;
 		  }
 	  }
 	  else if(btn_down_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 2)
+		  if(HAL_GetTick() - last_ticks >= 4)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_down_GPIO_Port, btn_down_Pin))
 			  {
-				  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+//				  HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
 			  }
 			  btn_down_flag = 0;
 		  }
 	  }
 	  else if(btn_right_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 2)
+		  if(HAL_GetTick() - last_ticks >= 4)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
 			  {
-				  HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
+//				  HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
 			  }
 			  btn_right_flag = 0;
 		  }
 	  }
 	  else if(btn_mid_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 2)
+		  if(HAL_GetTick() - last_ticks >= 4)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {
-				  // Toggle Measurement Mode
-				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+				  // Toggle Menu Display state
+				  if(display_state == 0){
+					  changeDisplayState(1);
+				  } else if(display_state == 1){
+					  changeDisplayState(0);
+				  }
+//				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 			  }
 			  btn_mid_flag = 0;
 		  }
@@ -284,7 +294,8 @@ int main(void)
 				  prev_diff = diff;
 			  }
 			  period = 0.2/(0.5*mid_passes);
-			  frequency = 1/period;
+//			  frequency = 1/period;
+			  frequency = 5000;
 			  amplitude = max - min;
 			  sprintf(msg, "Offset: %u\nMax: %u\nMin: %u\n \n", offset, max, min);
 //			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
@@ -571,6 +582,7 @@ uint8_t changeDisplayState(uint8_t code)
 	if (code == 0)
 	{
 		// Change to Menu Display State
+		display_state = 0;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
@@ -580,6 +592,7 @@ uint8_t changeDisplayState(uint8_t code)
 	else if (code == 1)
 	{
 		// Change to Measurement Display State
+		display_state = 1;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
@@ -589,6 +602,7 @@ uint8_t changeDisplayState(uint8_t code)
 	else if (code == 2)
 	{
 		// Change to Output Display State
+		display_state = 2;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
@@ -621,16 +635,16 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 //		// pass
 //	}
 
-	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
 
 	if(length > 7)
 	{
 		if(rx_array[2] == '*')
 		{
 			// Requests
-			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+//			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 			switch(rx_array[4])
 			{
 				case 'm':
@@ -641,6 +655,7 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 				case 's':
 					// Request Status
 					request_status(rx_array[6]);
+					break;
 
 				default:
 					// Problems
@@ -650,24 +665,29 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 		else if(rx_array[2] == '$')
 		{
 			// Set
-			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+//			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
 			uint8_t key1 = rx_array[4];
 			uint8_t key2 = rx_array[5];
 			if(key1 == 'D' && key2 == 'V'){
 				// DC Voltage
+				measurement_mode = 0;
 			} else if (key1 == 'A' && key2 == 'V'){
 				// AC Voltage
+				measurement_mode = 1;
 			} else if (key1 == 'D' && key2 == 'I'){
-				// AC Voltage
+				// DC Current
+				measurement_mode = 2;
 			} else if (key1 == 'A' && key2 == 'I'){
-				// AC Voltage
+				// AC Current
+				measurement_mode = 3;
 			} else if (key1 == 'T' && key2 == 'C'){
-				// AC Voltage
+				// Temperature
+				measurement_mode = 4;
 			}
 		}
 		else
 		{
-			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
+//			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
 		}
 	}
 }
@@ -683,16 +703,19 @@ void request_measurement(uint8_t parameter)
 			// Amplitude (peak-to-peak)
 			sprintf(msg, "@,m,a,%u,!\n", amplitude);
 			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 			break;
 		case 'o':
 			// Offset
-			sprintf(msg, "@,m,a,%u,!\n", offset);
+			sprintf(msg, "@,m,o,%u,!\n", offset);
 			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 			break;
 		case 'f':
 			// Frequency
-			sprintf(msg, "@,m,a,%lf,!\n", frequency);
+			sprintf(msg, "@,m,f,%u,!\n", frequency);
 			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 			break;
 		case 'd':
 			// Duty Cycle
@@ -708,10 +731,64 @@ void request_measurement(uint8_t parameter)
 
 void request_status(uint8_t output)
 {
-	if(output == '1'){
+	char msg[20];
+	if(output == '1')
+	{
 		// Output On
-	}else if (output == '0'){
+		output_active = 1;
+		switch(measurement_mode){
+			case 0:
+				// DV
+				sprintf(msg, "@,DV,p,%u,!\n", output_active);
+				break;
+			case 1:
+				// AV
+				sprintf(msg, "@,AV,p,%u,!\n", output_active);
+				break;
+			case 2:
+				// DI
+				sprintf(msg, "@,DI,p,%u,!\n", output_active);
+				break;
+			case 3:
+				// AI
+				sprintf(msg, "@,AI,p,%u,!\n", output_active);
+				break;
+			case 4:
+				// TC
+				sprintf(msg, "@,TC,p,%u,!\n", output_active);
+				break;
+		}
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	}
+	else if (output == '0')
+	{
 		// Output Off
+		output_active = 0;
+		switch(measurement_mode){
+			case 0:
+				// DV
+				sprintf(msg, "@,DV,p,%u,!\n", output_active);
+				break;
+			case 1:
+				// AV
+				sprintf(msg, "@,AV,p,%u,!\n", output_active);
+				break;
+			case 2:
+				// DI
+				sprintf(msg, "@,DI,p,%u,!\n", output_active);
+				break;
+			case 3:
+				// AI
+				sprintf(msg, "@,AI,p,%u,!\n", output_active);
+				break;
+			case 4:
+				// TC
+				sprintf(msg, "@,TC,p,%u,!\n", output_active);
+				break;
+		}
+		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 	}
 
 }
