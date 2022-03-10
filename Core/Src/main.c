@@ -293,7 +293,7 @@ int main(void)
 				  }
 				  prev_diff = diff;
 			  }
-			  period = 200000/(mid_passes);
+			  period = 50000/(mid_passes);
 			  frequency = 1000000/period;
 			  amplitude = max - min;
 //			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
@@ -449,7 +449,7 @@ static void MX_TIM16_Init(void)
   htim16.Instance = TIM16;
   htim16.Init.Prescaler = 72-1;
   htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 200 - 1;
+  htim16.Init.Period = 50 - 1;
   htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim16.Init.RepetitionCounter = 0;
   htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
