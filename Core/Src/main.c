@@ -66,6 +66,7 @@ bool uartRxComplete(uint8_t last_byte);
 void interpret_rx_message(uint8_t *rx_array, uint8_t length);
 void request_measurement(uint8_t parameter);
 void request_status();
+void set_output_parameter(uint8_t *rx_array, uint8_t length);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -84,13 +85,18 @@ uint32_t last_ticks = 0;
 uint8_t rx_byte[1];
 
 // VARIABLES OF INTEREST
-uint16_t amplitude = 0;
-uint16_t frequency = 0;
-uint16_t period = 0;
-uint16_t offset = 0;
+uint16_t measured_amplitude = 0;
+uint16_t measured_frequency = 0;
+uint16_t measured_period = 0;
+uint16_t measured_offset = 0;
 uint8_t measurement_mode = 0;
-uint8_t signal_mode = 0;
+
 uint8_t signal_active = 0;
+uint8_t signal_type = 'd'; // 0 = d, 1 = s, 2 = p
+uint8_t signal_amplitude = 0;
+uint8_t signal_frequency = 0;
+uint8_t signal_offset = 0;
+
 uint8_t display_state = 1; // Default of 1 is Measurement Display State
 uint8_t output_active = 0;
 
@@ -284,23 +290,23 @@ int main(void)
 					  min = adc_array[x];
 				  }
 			  }
-//			  offset = total/1000;
-			  offset = 1000;
+//			  measured_offset = total/1000;
+			  measured_offset = 1000;
 			  for(int x = 0; x < 1000; x++)
 			  {
 				  // Calculate frequency
-				  diff = adc_array[x] - offset;
+				  diff = adc_array[x] - measured_offset;
 				  if(diff > 0 && prev_diff < 0)
 				  {
 					  mid_passes++;
 				  }
 				  prev_diff = diff;
 			  }
-			  period = 50000/(mid_passes);
-//			  frequency = 1000000/period;
-			  frequency = 5250;
-//			  amplitude = max - min;
-			  amplitude = 500;
+			  measured_period = 50000/(mid_passes);
+//			  measured_frequency = 1000000/measured_period;
+			  measured_frequency = 5250;
+//			  measured_amplitude = max - min;
+			  measured_amplitude = 500;
 //			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
 //			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
@@ -693,6 +699,9 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 				// Temperature
 				measurement_mode = 4;
 			}
+		}else if(rx_array[2] == '^'){
+			// Set output Parameter
+			set_output_parameter(rx_array, length);
 		}
 		else
 		{
@@ -711,26 +720,26 @@ void request_measurement(uint8_t parameter)
 		case 'a':
 			// Amplitude (peak-to-peak)
 			msg[4] = 'a';
-			msg[6] = ((amplitude/1000) % 10) + 48;
-			msg[7] = ((amplitude/100) % 10) + 48;
-			msg[8] = ((amplitude/10) % 10) + 48;
-			msg[9] = (amplitude % 10) + 48;
+			msg[6] = ((measured_amplitude/1000) % 10) + 48;
+			msg[7] = ((measured_amplitude/100) % 10) + 48;
+			msg[8] = ((measured_amplitude/10) % 10) + 48;
+			msg[9] = (measured_amplitude % 10) + 48;
 			break;
 		case 'o':
 			// Offset
 			msg[4] = 'o';
-			msg[6] = ((offset/1000) % 10) + 48;
-			msg[7] = ((offset/100) % 10) + 48;
-			msg[8] = ((offset/10) % 10) + 48;
-			msg[9] = (offset % 10) + 48;
+			msg[6] = ((measured_offset/1000) % 10) + 48;
+			msg[7] = ((measured_offset/100) % 10) + 48;
+			msg[8] = ((measured_offset/10) % 10) + 48;
+			msg[9] = (measured_offset % 10) + 48;
 			break;
 		case 'f':
 			// Frequency
 			msg[4] = 'f';
-			msg[6] = ((frequency/1000) % 10) + 48;
-			msg[7] = ((frequency/100) % 10) + 48;
-			msg[8] = ((frequency/10) % 10) + 48;
-			msg[9] = (frequency % 10) + 48;
+			msg[6] = ((measured_frequency/1000) % 10) + 48;
+			msg[7] = ((measured_frequency/100) % 10) + 48;
+			msg[8] = ((measured_frequency/10) % 10) + 48;
+			msg[9] = (measured_frequency % 10) + 48;
 			break;
 		case 'd':
 			// Duty Cycle
@@ -779,23 +788,7 @@ void request_status()
 			// Problems
 			break;
 	}
-	switch(signal_mode){
-		case 0:
-			// DC
-			msg[5] = 'd';
-			break;
-		case 1:
-			// Sinusoidal
-			msg[5] = 's';
-			break;
-		case 2:
-			// Pulse
-			msg[5] = 'p';
-			break;
-		default:
-			// Problems
-			break;
-	}
+	msg[5] = signal_type;
 	switch(signal_active){
 		case 0:
 			// Output off
@@ -812,6 +805,49 @@ void request_status()
 	HAL_UART_Transmit(&huart2, msg, 11, 10);
 	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 
+}
+
+void set_output_parameter(uint8_t *rx_array, uint8_t length)
+{
+	uint8_t param = rx_array[4];
+	uint8_t val0 = rx_array[6];
+	uint8_t received_value = 0;
+	if(length > 9){
+		uint8_t val1 = rx_array[7];
+		uint8_t val2 = rx_array[8];
+		uint8_t val3 = rx_array[9];
+		received_value += val0*1000;
+		received_value += val1*100;
+		received_value += val2*10;
+		received_value += val3;
+	}
+	switch(param){
+		case 't':
+			// Type
+			signal_type = val0;
+			break;
+		case 'a':
+			// Amplitude
+			signal_amplitude = received_value;
+			break;
+		case 'o':
+			// Offset
+			signal_offset = received_value;
+			break;
+		case 'f':
+			// Frequency
+			signal_frequency = received_value;
+			break;
+		case 'd':
+			// Duty Cycle
+			break;
+		case 'c':
+			// Temperature
+			break;
+		default:
+			// Problems
+			break;
+	}
 }
 
 /* USER CODE END 4 */
