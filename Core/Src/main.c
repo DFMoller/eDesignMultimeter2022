@@ -65,7 +65,7 @@ uint8_t changeDisplayState(uint8_t code);
 bool uartRxComplete(uint8_t last_byte);
 void interpret_rx_message(uint8_t *rx_array, uint8_t length);
 void request_measurement(uint8_t parameter);
-void request_status(uint8_t output);
+void request_status();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -89,6 +89,8 @@ uint16_t frequency = 0;
 uint16_t period = 0;
 uint16_t offset = 0;
 uint8_t measurement_mode = 0;
+uint8_t signal_mode = 0;
+uint8_t signal_active = 0;
 uint8_t display_state = 1; // Default of 1 is Measurement Display State
 uint8_t output_active = 0;
 
@@ -133,7 +135,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint16_t raw;
 	uint16_t millivolts;
-	char msg[100];
+//	char msg[100];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
 
@@ -282,7 +284,8 @@ int main(void)
 					  min = adc_array[x];
 				  }
 			  }
-			  offset = total/1000;
+//			  offset = total/1000;
+			  offset = 1000;
 			  for(int x = 0; x < 1000; x++)
 			  {
 				  // Calculate frequency
@@ -294,8 +297,10 @@ int main(void)
 				  prev_diff = diff;
 			  }
 			  period = 50000/(mid_passes);
-			  frequency = 1000000/period;
-			  amplitude = max - min;
+//			  frequency = 1000000/period;
+			  frequency = 5250;
+//			  amplitude = max - min;
+			  amplitude = 500;
 //			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
 //			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		  }
@@ -654,7 +659,12 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 
 				case 's':
 					// Request Status
-					request_status(rx_array[6]);
+					if(rx_array[6] == '0'){
+						signal_active = 0;
+					} else if(rx_array[6] == '1'){
+						signal_active = 1;
+					}
+					request_status();
 					break;
 
 				default:
@@ -665,7 +675,6 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 		else if(rx_array[2] == '$')
 		{
 			// Set
-//			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
 			uint8_t key1 = rx_array[4];
 			uint8_t key2 = rx_array[5];
 			if(key1 == 'D' && key2 == 'V'){
@@ -694,28 +703,34 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 
 void request_measurement(uint8_t parameter)
 {
-	char msg[20];
+	uint8_t msg[13] = "@,m,x,xxxx,!\n";
 	switch(parameter){
 		case 't':
 			// Type
 			break;
 		case 'a':
 			// Amplitude (peak-to-peak)
-			sprintf(msg, "@,m,a,%u,!\n", amplitude);
-			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
-			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+			msg[4] = 'a';
+			msg[6] = ((amplitude/1000) % 10) + 48;
+			msg[7] = ((amplitude/100) % 10) + 48;
+			msg[8] = ((amplitude/10) % 10) + 48;
+			msg[9] = (amplitude % 10) + 48;
 			break;
 		case 'o':
 			// Offset
-			sprintf(msg, "@,m,o,%u,!\n", offset);
-			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
-			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+			msg[4] = 'o';
+			msg[6] = ((offset/1000) % 10) + 48;
+			msg[7] = ((offset/100) % 10) + 48;
+			msg[8] = ((offset/10) % 10) + 48;
+			msg[9] = (offset % 10) + 48;
 			break;
 		case 'f':
 			// Frequency
-			sprintf(msg, "@,m,f,%u,!\n", frequency);
-			HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
-			HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+			msg[4] = 'f';
+			msg[6] = ((frequency/1000) % 10) + 48;
+			msg[7] = ((frequency/100) % 10) + 48;
+			msg[8] = ((frequency/10) % 10) + 48;
+			msg[9] = (frequency % 10) + 48;
 			break;
 		case 'd':
 			// Duty Cycle
@@ -727,69 +742,75 @@ void request_measurement(uint8_t parameter)
 			// Problems
 			break;
 	}
+	HAL_UART_Transmit(&huart2, msg, 13, 10);
+	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 }
 
-void request_status(uint8_t output)
+void request_status()
 {
-	char msg[20];
-	if(output == '1')
-	{
-		// Output On
-		output_active = 1;
-		switch(measurement_mode){
-			case 0:
-				// DV
-				sprintf(msg, "@,DV,p,%u,!\n", output_active);
-				break;
-			case 1:
-				// AV
-				sprintf(msg, "@,AV,p,%u,!\n", output_active);
-				break;
-			case 2:
-				// DI
-				sprintf(msg, "@,DI,p,%u,!\n", output_active);
-				break;
-			case 3:
-				// AI
-				sprintf(msg, "@,AI,p,%u,!\n", output_active);
-				break;
-			case 4:
-				// TC
-				sprintf(msg, "@,TC,p,%u,!\n", output_active);
-				break;
-		}
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
-		HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	uint8_t msg[11] = "@,xx,x,x,!\n";
+	switch(measurement_mode){
+		case 0:
+			// DV
+			msg[2] = 'D';
+			msg[3] = 'V';
+			break;
+		case 1:
+			// AV
+			msg[2] = 'A';
+			msg[3] = 'V';
+			break;
+		case 2:
+			// DI
+			msg[2] = 'D';
+			msg[3] = 'I';
+			break;
+		case 3:
+			// AI
+			msg[2] = 'A';
+			msg[3] = 'I';
+			break;
+		case 4:
+			// TC
+			msg[2] = 'T';
+			msg[3] = 'C';
+			break;
+		default:
+			// Problems
+			break;
 	}
-	else if (output == '0')
-	{
-		// Output Off
-		output_active = 0;
-		switch(measurement_mode){
-			case 0:
-				// DV
-				sprintf(msg, "@,DV,p,%u,!\n", output_active);
-				break;
-			case 1:
-				// AV
-				sprintf(msg, "@,AV,p,%u,!\n", output_active);
-				break;
-			case 2:
-				// DI
-				sprintf(msg, "@,DI,p,%u,!\n", output_active);
-				break;
-			case 3:
-				// AI
-				sprintf(msg, "@,AI,p,%u,!\n", output_active);
-				break;
-			case 4:
-				// TC
-				sprintf(msg, "@,TC,p,%u,!\n", output_active);
-				break;
-		}
-		HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
-		HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	switch(signal_mode){
+		case 0:
+			// DC
+			msg[5] = 'd';
+			break;
+		case 1:
+			// Sinusoidal
+			msg[5] = 's';
+			break;
+		case 2:
+			// Pulse
+			msg[5] = 'p';
+			break;
+		default:
+			// Problems
+			break;
 	}
+	switch(signal_active){
+		case 0:
+			// Output off
+			msg[7] = '0';
+			break;
+		case 1:
+			// Output on
+			msg[7] = '1';
+			break;
+		default:
+			// Problems
+			break;
+	}
+	HAL_UART_Transmit(&huart2, msg, 11, 10);
+	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 
 }
 
