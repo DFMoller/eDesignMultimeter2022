@@ -27,33 +27,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "lcd.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+// System Display States
+typedef enum DisplayStates {Menu, Measurement, Output} DisplayState;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-// LCD instructions
-#define lcd_instruction_ClearDisplay    	0b00000001      // replace all characters with ASCII 'space'
-#define lcd_instruction_EntryMode       	0b00000110      // shift cursor from left to right on read/write
-#define lcd_instruction_DisplayOn      		0b00001111      // Display On, Cursor On, Cursor Blinking On (0b00001DCB)
-#define lcd_instruction_FunctionReset   	0b00110000      // reset the LCD
-#define lcd_instruction_FunctionSet4bit 	0b00101000      // 4-bit data, 2-line display, 5 x 7 font
-#define lcd_instruction_DisplayShiftRight	0b00011100
-#define lcd_instruction_DisplayShiftLeft	0b00011000
-#define lcd_instruction_CursorShiftRight	0b00010100
-#define lcd_instruction_CursorShiftLeft		0b00010000
-
-#define lcd_RS_bit			13
-#define lcd_E_bit			15
-#define lcd_D4_bit			6
-#define lcd_D5_bit			8
-#define lcd_D6_bit			11
-#define lcd_D7_bit			12
 
 /* USER CODE END PD */
 
@@ -80,19 +67,13 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
-uint8_t changeDisplayState(uint8_t code);
+void changeDisplayState(DisplayState newDisplay);
 bool uartRxComplete(uint8_t last_byte);
 void interpret_rx_message(uint8_t *rx_array, uint8_t length);
 void request_measurement(uint8_t parameter);
 void request_status();
 void set_output_parameter(uint8_t *rx_array, uint8_t length);
-void LCD_Init();
-void LCD_Write_Character(uint8_t character);
-void LCD_Write_Instruction(uint8_t instruction);
-void LCD_Write_Nibbles(uint8_t byte);
-void LCD_Write_8bitInstruction(uint8_t byte);
-void LCD_ZeroPins();
-void LCD_Write_String(uint8_t string[]);
+
 
 /* USER CODE END PFP */
 
@@ -126,6 +107,8 @@ uint8_t signal_offset = 0;
 
 uint8_t display_state = 1; // Default of 1 is Measurement Display State
 uint8_t output_active = 0;
+
+enum DisplayStates CurrentDisplayMode;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -175,6 +158,7 @@ int main(void)
 
 	uint8_t rx_bytes[10] = {0};
 	uint8_t rx_bytes_counter = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -199,26 +183,16 @@ int main(void)
   MX_TIM16_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_UART_Transmit(&huart2, std_num, 13, 10);
-  HAL_UART_Receive_IT(&huart2, rx_byte, 1);
-  HAL_TIM_Base_Start_IT(&htim16);
+  	// Init
+	HAL_UART_Transmit(&huart2, std_num, 13, 10);
+	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	HAL_TIM_Base_Start_IT(&htim16);
 
+	LCD_Init();
 
-  // Set up the default state of the device
-  display_state = changeDisplayState(1); // 1 == Measurement mode
+	// Init Display State
+	changeDisplayState(Menu);
 
-  // Test register writing
-//  lcd_RS_GPIO_Port->ODR |= (1<<lcd_RS_bit);
-  LCD_Init();
-  uint8_t screen_message[] = "Hello World!";
-  LCD_Write_String(screen_message);
-
-//  lcd_RS_GPIO_Port->ODR |= (1<<lcd_RS_bit);
-//  lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);
-//  lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
-//  lcd_D5_GPIO_Port->ODR |= (1<<lcd_D5_bit);
-//  lcd_D6_GPIO_Port->ODR |= (1<<lcd_D6_bit);
-//  lcd_D7_GPIO_Port->ODR |= (1<<lcd_D7_bit);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -292,12 +266,13 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {
 				  // Toggle Menu Display state
-				  if(display_state == 0){
-					  changeDisplayState(1);
-				  } else if(display_state == 1){
-					  changeDisplayState(0);
+				  if(CurrentDisplayMode == Menu){
+//					  DisplayMode = Measurement;
+					  changeDisplayState(Measurement);
+				  } else if(CurrentDisplayMode == Measurement){
+//					  DisplayMode = Menu;
+					  changeDisplayState(Menu);
 				  }
-//				  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 			  }
 			  btn_mid_flag = 0;
 		  }
@@ -659,42 +634,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-uint8_t changeDisplayState(uint8_t code)
+void changeDisplayState(DisplayState newDisplay)
 {
-	if (code == 0)
+	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
+	if (newDisplay == Menu)
 	{
 		// Change to Menu Display State
-		display_state = 0;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
-		return 0;
+		uint8_t lcd_string[] = "Menu";
+		LCD_Write_String(lcd_string);
+		CurrentDisplayMode = Menu;
 	}
-	else if (code == 1)
+	else if (newDisplay == Measurement)
 	{
 		// Change to Measurement Display State
-		display_state = 1;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
-		return 1;
+		uint8_t lcd_string[] = "Measurement";
+		LCD_Write_String(lcd_string);
+		CurrentDisplayMode = Measurement;
 	}
-	else if (code == 2)
+	else if (newDisplay == Output)
 	{
 		// Change to Output Display State
 		display_state = 2;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
-		return 2;
-	}
-	else
-	{
-		// An error has occurred
-		return 3;
+		uint8_t lcd_string[] = "Output";
+		LCD_Write_String(lcd_string);
+		CurrentDisplayMode = Output;
 	}
 }
 
@@ -923,115 +895,7 @@ void set_output_parameter(uint8_t *rx_array, uint8_t length)
 
 // LCD Functions #################
 
-void LCD_Init()
-{
 
-	HAL_UART_Transmit(&huart2, (uint8_t*)"\nStart of Init Function:\n", 25, 10);
-
-	HAL_Delay(20);
-
-	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(10);
-
-	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(1);
-
-	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(10);
-
-	LCD_Write_8bitInstruction(lcd_instruction_FunctionSet4bit);
-	HAL_Delay(1);
-
-	LCD_Write_Instruction(lcd_instruction_FunctionSet4bit);
-	HAL_Delay(1);
-
-	LCD_Write_Instruction(lcd_instruction_DisplayOn);
-	HAL_Delay(1);
-
-	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
-	HAL_Delay(3);
-
-	LCD_Write_Instruction(lcd_instruction_EntryMode);
-	HAL_Delay(1);
-
-	HAL_UART_Transmit(&huart2, (uint8_t*)"\nEnd of Init Function:\n", 23, 10);
-
-}
-
-void LCD_Write_String(uint8_t string[])
-{
-	int i = 0;
-	while (string[i] != 0)
-	{
-		LCD_Write_Character(string[i]);
-		i++;
-		HAL_Delay(1);
-	}
-}
-
-void LCD_Write_Character(uint8_t character)
-{
-	lcd_RS_GPIO_Port->ODR |= (1<<lcd_RS_bit);			// select data register (RS High)
-	LCD_Write_Nibbles(character);
-}
-
-void LCD_Write_Instruction(uint8_t instruction)
-{
-	lcd_RS_GPIO_Port->ODR &= ~(1<<lcd_RS_bit);			// select the Instruction Register (RS low)
-	LCD_Write_Nibbles(instruction);
-}
-
-void LCD_Write_Nibbles(uint8_t byte)
-{
-	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);			// set E high
-	LCD_ZeroPins();
-
-	// Write first (most significant) nibble
-	if(byte & 1<<7)	lcd_D7_GPIO_Port->ODR |= (1<<lcd_D7_bit);
-	if(byte & 1<<6)	lcd_D6_GPIO_Port->ODR |= (1<<lcd_D6_bit);
-	if(byte & 1<<5)	lcd_D5_GPIO_Port->ODR |= (1<<lcd_D5_bit);
-	if(byte & 1<<4)	lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
-
-
-	// Pulse Enable
-	HAL_Delay(1);
-	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);			// Set to 0
-	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);				// Set to 1
-
-	LCD_ZeroPins();
-	if(byte & 1<<3)	lcd_D7_GPIO_Port->ODR |= (1<<lcd_D7_bit);
-	if(byte & 1<<2)	lcd_D6_GPIO_Port->ODR |= (1<<lcd_D6_bit);
-	if(byte & 1<<1)	lcd_D5_GPIO_Port->ODR |= (1<<lcd_D5_bit);
-	if(byte & 1<<0)	lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
-
-	// Drop Enable
-	HAL_Delay(1);
-	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);		// Set to 0
-}
-
-void LCD_Write_8bitInstruction(uint8_t byte)
-{
-	lcd_RS_GPIO_Port->ODR &= ~(1<<lcd_RS_bit);			// Set RS to 0
-	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);				// Set E to 1
-	LCD_ZeroPins();
-
-	 // Set to zero first
-	if(byte & 1<<7)	lcd_D7_GPIO_Port->ODR |= (1<<lcd_D7_bit);
-	if(byte & 1<<6)	lcd_D6_GPIO_Port->ODR |= (1<<lcd_D6_bit);
-	if(byte & 1<<5)	lcd_D5_GPIO_Port->ODR |= (1<<lcd_D5_bit);
-	if(byte & 1<<4)	lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
-
-	HAL_Delay(1);
-	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);		// Set E to 0
-}
-
-void LCD_ZeroPins()
-{
-	lcd_D7_GPIO_Port->ODR &= ~(1<<lcd_D7_bit);
-	lcd_D6_GPIO_Port->ODR &= ~(1<<lcd_D6_bit);
-	lcd_D5_GPIO_Port->ODR &= ~(1<<lcd_D5_bit);
-	lcd_D4_GPIO_Port->ODR &= ~(1<<lcd_D4_bit);
-}
 
 /* USER CODE END 4 */
 
