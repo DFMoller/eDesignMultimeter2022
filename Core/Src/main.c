@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "lcd.h"
+#include "dac.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +54,10 @@ typedef enum DisplayStates {Menu, Measurement, Output} DisplayState;
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+DAC_HandleTypeDef hdac1;
+DMA_HandleTypeDef hdma_dac1_ch1;
+
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart2;
@@ -63,9 +69,12 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_DAC1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 void changeDisplayState(DisplayState newDisplay);
 bool uartRxComplete(uint8_t last_byte);
@@ -98,15 +107,6 @@ uint16_t measured_frequency = 0;
 uint16_t measured_period = 0;
 uint16_t measured_offset = 0;
 uint8_t measurement_mode = 0;
-
-uint8_t signal_active = 0;
-uint8_t signal_type = 'd'; // 0 = d, 1 = s, 2 = p
-uint8_t signal_amplitude = 0;
-uint8_t signal_frequency = 0;
-uint8_t signal_offset = 0;
-
-uint8_t display_state = 1; // Default of 1 is Measurement Display State
-uint8_t output_active = 0;
 
 enum DisplayStates CurrentDisplayMode;
 
@@ -179,9 +179,12 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM16_Init();
   MX_ADC1_Init();
+  MX_DAC1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   	// Init
 	HAL_UART_Transmit(&huart2, std_num, 13, 10);
@@ -192,6 +195,16 @@ int main(void)
 
 	// Init Display State
 	changeDisplayState(Menu);
+
+	signal_amplitude = 1000;
+	signal_offset = 1000;
+	signal_frequency = 800;
+
+	DAC_Calculate_Sine_Buffer();
+	DAC_Set_Output_Frequency();
+	HAL_TIM_Base_Start(&htim2);
+	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_buffer, 100, DAC_ALIGN_12B_R);
+
 
   /* USER CODE END 2 */
 
@@ -384,10 +397,11 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_TIM16
-                              |RCC_PERIPHCLK_ADC12;
+                              |RCC_PERIPHCLK_ADC12|RCC_PERIPHCLK_TIM2;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.Adc12ClockSelection = RCC_ADC12PLLCLK_DIV1;
   PeriphClkInit.Tim16ClockSelection = RCC_TIM16CLK_HCLK;
+  PeriphClkInit.Tim2ClockSelection = RCC_TIM2CLK_HCLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -458,6 +472,89 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief DAC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DAC1_Init(void)
+{
+
+  /* USER CODE BEGIN DAC1_Init 0 */
+
+  /* USER CODE END DAC1_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC1_Init 1 */
+
+  /* USER CODE END DAC1_Init 1 */
+  /** DAC Initialization 
+  */
+  hdac1.Instance = DAC1;
+  if (HAL_DAC_Init(&hdac1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** DAC channel OUT1 config 
+  */
+  sConfig.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC1_Init 2 */
+
+  /* USER CODE END DAC1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1000-1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
   * @brief TIM16 Initialization Function
   * @param None
   * @retval None
@@ -521,6 +618,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
 
@@ -660,7 +773,6 @@ void changeDisplayState(DisplayState newDisplay)
 	else if (newDisplay == Output)
 	{
 		// Change to Output Display State
-		display_state = 2;
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
