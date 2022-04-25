@@ -196,7 +196,7 @@ int main(void)
 	// Init Display State
 	changeDisplayState(Menu);
 
-	signal_amplitude = 1000;
+	signal_amplitude = 400;
 	signal_offset = 1000;
 	signal_frequency = 800;
 

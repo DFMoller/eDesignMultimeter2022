@@ -29,7 +29,7 @@ void DAC_Calculate_Sine_Buffer()
 {
 	for(int i=0; i<100; i++)
 	{
-		sine_buffer[i] = (sin(i*2*PI/100) + 1)*(4096/2);
+		sine_buffer[i] = ((signal_amplitude/2)*sin(i*2*PI/100) + signal_offset)*(4096/3300);
 	}
 }
 
