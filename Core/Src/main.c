@@ -23,9 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+//#include <string.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include <stdbool.h>
 #include "lcd.h"
 #include "dac.h"
@@ -151,13 +151,18 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint16_t raw;
 	uint16_t millivolts;
-//	char msg[100];
 	uint16_t adc_array[1000];
 	uint16_t adc_count = 0;
-
-
 	uint8_t rx_bytes[10] = {0};
 	uint8_t rx_bytes_counter = 0;
+
+	OutputState.TIM2_Clock = 72000000;
+	OutputState.On = false;
+	OutputState.Mode = d;
+	OutputState.Amplitude = 1000;
+	OutputState.Offset = 1200;
+	OutputState.Frequency = 1000;
+	OutputState.DCValue = 1000;
 
   /* USER CODE END 1 */
 
@@ -196,14 +201,10 @@ int main(void)
 	// Init Display State
 	changeDisplayState(Menu);
 
-	signal_amplitude = 400;
-	signal_offset = 1000;
-	signal_frequency = 800;
-
 	DAC_Calculate_Sine_Buffer();
 	DAC_Set_Output_Frequency();
 	HAL_TIM_Base_Start(&htim2);
-	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, sine_buffer, 100, DAC_ALIGN_12B_R);
+	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, OutputState.SineBuffer, 100, DAC_ALIGN_12B_R);
 
 
   /* USER CODE END 2 */
@@ -749,7 +750,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void changeDisplayState(DisplayState newDisplay)
 {
-	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
+	LCD_Clear_Display();
 	if (newDisplay == Menu)
 	{
 		// Change to Menu Display State
@@ -821,9 +822,9 @@ void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 				case 's':
 					// Request Status
 					if(rx_array[6] == '0'){
-						signal_active = 0;
+						OutputState.On = false;
 					} else if(rx_array[6] == '1'){
-						signal_active = 1;
+						OutputState.On = true;
 					}
 					request_status();
 					break;
@@ -943,19 +944,11 @@ void request_status()
 			// Problems
 			break;
 	}
-	msg[5] = signal_type;
-	switch(signal_active){
-		case 0:
-			// Output off
-			msg[7] = '0';
-			break;
-		case 1:
-			// Output on
-			msg[7] = '1';
-			break;
-		default:
-			// Problems
-			break;
+	msg[5] = OutputState.Mode;
+	if(OutputState.On){
+		msg[7] = '1';
+	} else {
+		msg[7] = '0';
 	}
 	HAL_UART_Transmit(&huart2, msg, 11, 10);
 	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
@@ -979,19 +972,19 @@ void set_output_parameter(uint8_t *rx_array, uint8_t length)
 	switch(param){
 		case 't':
 			// Type
-			signal_type = val0;
+			OutputState.Mode = (OutputMode)val0; // TODO: This might break! Need to test and try casting to OutputMode type
 			break;
 		case 'a':
 			// Amplitude
-			signal_amplitude = received_value;
+			OutputState.Amplitude = received_value;
 			break;
 		case 'o':
 			// Offset
-			signal_offset = received_value;
+			OutputState.Offset = received_value;
 			break;
 		case 'f':
 			// Frequency
-			signal_frequency = received_value;
+			OutputState.Frequency = received_value;
 			break;
 		case 'd':
 			// Duty Cycle
