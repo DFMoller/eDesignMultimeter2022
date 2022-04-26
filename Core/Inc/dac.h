@@ -10,7 +10,7 @@
 
 #include <stdbool.h>
 
-typedef enum OutputModes{d, s, p} OutputMode;
+typedef enum OutputModes{d='d', s='s', p='p'} OutputMode;
 
 typedef struct OutputTemplate{
 	uint32_t SineBuffer[100];

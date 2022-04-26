@@ -79,32 +79,11 @@ void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length)
 		}
 		else if(rx_array[2] == '$')
 		{
-			// Set
-			uint8_t key1 = rx_array[4];
-			uint8_t key2 = rx_array[5];
-			if(key1 == 'D' && key2 == 'V'){
-				// DC Voltage
-				MeasurementState.Mode = DV;
-			} else if (key1 == 'A' && key2 == 'V'){
-				// AC Voltage
-				MeasurementState.Mode = AV;
-			} else if (key1 == 'D' && key2 == 'I'){
-				// DC Current
-				MeasurementState.Mode = DI;
-			} else if (key1 == 'A' && key2 == 'I'){
-				// AC Current
-				MeasurementState.Mode = AI;
-			} else if (key1 == 'T' && key2 == 'C'){
-				// Temperature
-				MeasurementState.Mode = TC;
-			}
+			// Set Measurement Mode
+			UART_Set_Measurement_Mode(rx_array[4], rx_array[5]);
 		}else if(rx_array[2] == '^'){
 			// Set output Parameter
 			UART_Set_Output_Parameter(rx_array, length);
-		}
-		else
-		{
-//			HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
 		}
 	}
 }
@@ -187,7 +166,8 @@ void UART_Request_Status()
 			// Problems
 			break;
 	}
-	msg[5] = (uint8_t)OutputState.Mode; // TODO: This might break! Need to test and try casting to uint8_t type
+	msg[5] = OutputState.Mode;
+
 	if(OutputState.On){
 		msg[7] = '1';
 	} else {
@@ -196,6 +176,25 @@ void UART_Request_Status()
 	HAL_UART_Transmit(&huart2, msg, 11, 10);
 	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 
+}
+
+void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2){
+	if(key1 == 'D' && key2 == 'V'){
+		// DC Voltage
+		MeasurementState.Mode = DV;
+	} else if (key1 == 'A' && key2 == 'V'){
+		// AC Voltage
+		MeasurementState.Mode = AV;
+	} else if (key1 == 'D' && key2 == 'I'){
+		// DC Current
+		MeasurementState.Mode = DI;
+	} else if (key1 == 'A' && key2 == 'I'){
+		// AC Current
+		MeasurementState.Mode = AI;
+	} else if (key1 == 'T' && key2 == 'C'){
+		// Temperature
+		MeasurementState.Mode = TC;
+	}
 }
 
 void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
@@ -215,7 +214,7 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 	switch(param){
 		case 't':
 			// Type
-			OutputState.Mode = (OutputMode)val0; // TODO: This might break! Need to test and try casting to OutputMode type
+			OutputState.Mode = val0;
 			break;
 		case 'a':
 			// Amplitude
