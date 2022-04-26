@@ -9,6 +9,7 @@
 #include "uart.h"
 #include "dac.h"
 #include "adc.h"
+#include "lcd.h"
 
 extern UART_HandleTypeDef huart2;
 
@@ -61,30 +62,39 @@ void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length)
 					// Request Measurement
 					UART_Request_Measurement(rx_array[6]);
 					break;
-
 				case 's':
 					// Request Status
-					if(rx_array[6] == '0'){
-						OutputState.On = false;
-					} else if(rx_array[6] == '1'){
-						OutputState.On = true;
-					}
+					DAC_Switch_Output_OnOff(rx_array[6]);
 					UART_Request_Status();
 					break;
-
 				default:
 					// Problems
 					break;
 			}
 		}
-		else if(rx_array[2] == '$')
-		{
+		else if(rx_array[2] == '$'){
 			// Set Measurement Mode
 			UART_Set_Measurement_Mode(rx_array[4], rx_array[5]);
 		}else if(rx_array[2] == '^'){
 			// Set output Parameter
 			UART_Set_Output_Parameter(rx_array, length);
+		}else if(rx_array[2] == '#'){
+			// Display on LCD
+			UART_Display_On_LCD(rx_array[4], rx_array[6]);
 		}
+	}
+}
+
+void UART_Display_On_LCD(uint8_t rs, uint8_t byte)
+{
+	if(rs == '1'){
+		// Set print flag; store rs and byte
+		DisplayState.PrintFlag = 1;
+		DisplayState.PrintRS = 1;
+		DisplayState.PrintByte = byte;
+	}else if(rs == '0'){
+		// Instruction
+		LCD_Write_Instruction(byte);
 	}
 }
 
@@ -167,7 +177,6 @@ void UART_Request_Status()
 			break;
 	}
 	msg[5] = OutputState.Mode;
-
 	if(OutputState.On){
 		msg[7] = '1';
 	} else {

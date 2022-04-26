@@ -47,3 +47,14 @@ void DAC_Stop()
 	OutputState.On = false;
 	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
 }
+
+void DAC_Switch_Output_OnOff(uint8_t onoff)
+{
+	if(onoff == '1'){
+		OutputState.On = true;
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
+	}else if(onoff == '0'){
+		OutputState.On = false;
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
+	}
+}

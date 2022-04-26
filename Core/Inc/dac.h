@@ -29,5 +29,6 @@ extern OutputStateType OutputState;
 void DAC_Calculate_Sine_Buffer();
 void DAC_Set_Output_Frequency();
 void DAC_Start();
+void DAC_Switch_Output_OnOff(uint8_t onoff);
 
 #endif /* INC_DAC_H_ */

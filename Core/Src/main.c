@@ -162,6 +162,9 @@ int main(void)
 	MeasurementState.Offset = 0;
 	MeasurementState.Period = 0;
 
+	DisplayState.NumCharacters = 0;
+	DisplayState.PrintFlag = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -212,6 +215,20 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  // LCD UART OUTPUT JOB
+	  if(DisplayState.PrintFlag)
+	  {
+		  if(DisplayState.PrintRS == 1){
+			  if(DisplayState.Mode != Output)
+			  {
+				  LCD_changeDisplayMode(Output);
+			  }
+			  LCD_Write_Character(DisplayState.PrintByte);
+		  }
+		  DisplayState.PrintFlag = 0;
+	  }
+
 	  // UART JOB
 	  if(message_received)
 	  {
@@ -273,7 +290,7 @@ int main(void)
 				  // Toggle Menu Display state
 				  if(DisplayState.Mode == Menu){
 					  LCD_changeDisplayMode(Measurement);
-				  } else if(DisplayState.Mode == Measurement){
+				  } else if(DisplayState.Mode == Measurement || DisplayState.Mode == Output){
 					  LCD_changeDisplayMode(Menu);
 				  }
 			  }

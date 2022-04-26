@@ -8,6 +8,7 @@
 
 #include "main.h"
 #include "adc.h"
+#include "lcd.h"
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -62,6 +63,10 @@ void ADC_Main_Function()
 	  MeasurementState.Amplitude = 500;
 	//			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
 	//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
+		if(DisplayState.Mode == Measurement)
+		{
+//			LCD_Display_Measurement();
+		}
 	}
 	else
 	{

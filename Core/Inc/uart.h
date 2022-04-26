@@ -19,5 +19,6 @@ void UART_Request_Measurement(uint8_t parameter);
 void UART_Request_Status();
 void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2);
 void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length);
+void UART_Display_On_LCD(uint8_t rs, uint8_t byte);
 
 #endif /* INC_UART_H_ */

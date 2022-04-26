@@ -12,7 +12,11 @@ typedef enum DisplayStates {Menu, Measurement, Output} DisplayMode;
 
 typedef struct DisplayTemplate{
 	enum DisplayStates Mode;
+	enum DisplayStates LastMode;
 	uint8_t NumCharacters;
+	uint8_t PrintFlag;
+	uint8_t PrintRS;
+	uint8_t PrintByte;
 } DisplayStateType;
 
 extern DisplayStateType DisplayState;
@@ -26,6 +30,9 @@ void LCD_ZeroPins();
 void LCD_Write_String(uint8_t string[]);
 void LCD_Clear_Display();
 void LCD_changeDisplayMode(DisplayMode newDisplayMode);
+void LCD_NewLine();
+void LCD_Display_Measurement();
+void LCD_Display_Menu();
 
 
 #endif /* INC_LCD_H_ */
