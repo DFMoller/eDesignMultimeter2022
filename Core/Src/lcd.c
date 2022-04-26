@@ -27,6 +27,8 @@ extern UART_HandleTypeDef huart2;
 #define lcd_D6_bit			11
 #define lcd_D7_bit			12
 
+DisplayStateType DisplayState;
+
 void LCD_Init()
 {
 
@@ -140,6 +142,41 @@ void LCD_ZeroPins()
 void LCD_Clear_Display()
 {
 	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
+}
+
+void LCD_changeDisplayMode(DisplayMode newDisplayMode)
+{
+	LCD_Clear_Display();
+	if (newDisplayMode == Menu)
+	{
+		// Change to Menu Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
+		uint8_t lcd_string[] = "Menu";
+		LCD_Write_String(lcd_string);
+		DisplayState.Mode = Menu;
+	}
+	else if (newDisplayMode == Measurement)
+	{
+		// Change to Measurement Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
+		uint8_t lcd_string[] = "Measurement";
+		LCD_Write_String(lcd_string);
+		DisplayState.Mode = Measurement;
+	}
+	else if (newDisplayMode == Output)
+	{
+		// Change to Output Display State
+		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
+		uint8_t lcd_string[] = "Output";
+		LCD_Write_String(lcd_string);
+		DisplayState.Mode = Output;
+	}
 }
 
 

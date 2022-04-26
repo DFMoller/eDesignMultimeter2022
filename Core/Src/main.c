@@ -36,7 +36,7 @@
 /* USER CODE BEGIN PTD */
 
 // System Display States
-typedef enum DisplayStates {Menu, Measurement, Output} DisplayState;
+
 
 /* USER CODE END PTD */
 
@@ -76,7 +76,7 @@ static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-void changeDisplayState(DisplayState newDisplay);
+void LCD_changeDisplayMode(DisplayMode newDisplayMode);
 bool uartRxComplete(uint8_t last_byte);
 void interpret_rx_message(uint8_t *rx_array, uint8_t length);
 void request_measurement(uint8_t parameter);
@@ -107,8 +107,6 @@ uint16_t measured_frequency = 0;
 uint16_t measured_period = 0;
 uint16_t measured_offset = 0;
 uint8_t measurement_mode = 0;
-
-enum DisplayStates CurrentDisplayMode;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -191,21 +189,22 @@ int main(void)
   MX_DAC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  	// Init
+
+  	// Init UART
 	HAL_UART_Transmit(&huart2, std_num, 13, 10);
 	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+
+	// Init ADC Timer
 	HAL_TIM_Base_Start_IT(&htim16);
 
+	// Init LCD
 	LCD_Init();
 
 	// Init Display State
-	changeDisplayState(Menu);
+	LCD_changeDisplayMode(Menu);
 
-	DAC_Calculate_Sine_Buffer();
-	DAC_Set_Output_Frequency();
+	// Init DAC Timer
 	HAL_TIM_Base_Start(&htim2);
-	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, OutputState.SineBuffer, 100, DAC_ALIGN_12B_R);
-
 
   /* USER CODE END 2 */
 
@@ -280,12 +279,10 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {
 				  // Toggle Menu Display state
-				  if(CurrentDisplayMode == Menu){
-//					  DisplayMode = Measurement;
-					  changeDisplayState(Measurement);
-				  } else if(CurrentDisplayMode == Measurement){
-//					  DisplayMode = Menu;
-					  changeDisplayState(Menu);
+				  if(DisplayState.Mode == Menu){
+					  LCD_changeDisplayMode(Measurement);
+				  } else if(DisplayState.Mode == Measurement){
+					  LCD_changeDisplayMode(Menu);
 				  }
 			  }
 			  btn_mid_flag = 0;
@@ -748,41 +745,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 }
 
-void changeDisplayState(DisplayState newDisplay)
-{
-	LCD_Clear_Display();
-	if (newDisplay == Menu)
-	{
-		// Change to Menu Display State
-		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
-		uint8_t lcd_string[] = "Menu";
-		LCD_Write_String(lcd_string);
-		CurrentDisplayMode = Menu;
-	}
-	else if (newDisplay == Measurement)
-	{
-		// Change to Measurement Display State
-		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
-		uint8_t lcd_string[] = "Measurement";
-		LCD_Write_String(lcd_string);
-		CurrentDisplayMode = Measurement;
-	}
-	else if (newDisplay == Output)
-	{
-		// Change to Output Display State
-		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
-		uint8_t lcd_string[] = "Output";
-		LCD_Write_String(lcd_string);
-		CurrentDisplayMode = Output;
-	}
-}
-
 bool uartRxComplete(uint8_t last_byte)
 {
 	if(last_byte == '!')
@@ -797,21 +759,12 @@ bool uartRxComplete(uint8_t last_byte)
 
 void interpret_rx_message(uint8_t *rx_array, uint8_t length)
 {
-//	for(int x = 0; x < length; x++)
-//	{
-//		// pass
-//	}
-
-//	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-//	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
 
 	if(length > 7)
 	{
 		if(rx_array[2] == '*')
 		{
 			// Requests
-//			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 			switch(rx_array[4])
 			{
 				case 'm':
@@ -944,7 +897,7 @@ void request_status()
 			// Problems
 			break;
 	}
-	msg[5] = OutputState.Mode;
+	msg[5] = (uint8_t)OutputState.Mode; // TODO: This might break! Need to test and try casting to uint8_t type
 	if(OutputState.On){
 		msg[7] = '1';
 	} else {
