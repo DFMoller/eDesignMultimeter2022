@@ -32,8 +32,6 @@ DisplayStateType DisplayState;
 void LCD_Init()
 {
 
-	HAL_UART_Transmit(&huart2, (uint8_t*)"\nStart of Init Function:\n", 25, 10);
-
 	HAL_Delay(20);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
@@ -59,8 +57,6 @@ void LCD_Init()
 
 	LCD_Write_Instruction(lcd_instruction_EntryMode);
 	HAL_Delay(1);
-
-	HAL_UART_Transmit(&huart2, (uint8_t*)"\nEnd of Init Function:\n", 23, 10);
 
 }
 

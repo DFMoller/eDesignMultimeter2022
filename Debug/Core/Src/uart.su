@@ -1,0 +1,6 @@
+uart.c:19:6:UART_Main_Function	8	static
+uart.c:38:6:UART_Rx_Complete	16	static
+uart.c:50:6:UART_Interpret_Rx_Message	24	static
+uart.c:112:6:UART_Request_Measurement	40	static
+uart.c:157:6:UART_Request_Status	24	static
+uart.c:201:6:UART_Set_Output_Parameter	24	static
