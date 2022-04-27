@@ -1,5 +1,5 @@
-dac.c:20:6:DAC_Calculate_Sine_Buffer	24	static
-dac.c:28:6:DAC_Set_Output_Frequency	4	static
-dac.c:37:6:DAC_Start	16	static
-dac.c:45:6:DAC_Stop	8	static
-dac.c:51:6:DAC_Switch_Output_OnOff	16	static
+dac.c:20:6:DAC_Calculate_Buffer	24	static
+dac.c:38:6:DAC_Set_Output_Frequency	4	static
+dac.c:47:6:DAC_Start	16	static
+dac.c:59:6:DAC_Stop	8	static
+dac.c:66:6:DAC_Update_Output	8	static

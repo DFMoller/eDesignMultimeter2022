@@ -17,11 +17,21 @@ extern DAC_HandleTypeDef hdac1;
 
 OutputStateType OutputState;
 
-void DAC_Calculate_Sine_Buffer()
+void DAC_Calculate_Buffer()
 {
-	for(int i=0; i<100; i++)
+	if(OutputState.Mode == d)
 	{
-		OutputState.SineBuffer[i] = ((OutputState.Amplitude/2)*sin(i*2*PI/100) + OutputState.Offset)*(4096/3300);
+		for(int i=0; i<100; i++)
+		{
+			OutputState.Buffer[i] = OutputState.Offset * (4096/3300) * (1000 / 920) / 2;
+		}
+	}
+	else if (OutputState.Mode == s)
+	{
+		for(int i=0; i<100; i++)
+		{
+			OutputState.Buffer[i] = (float)((((float)OutputState.Amplitude/2)*sin(i*2*PI/100) + (float)OutputState.Offset)*(4096/3300) * (float)(1000 / 550) / 2);
+		}
 	}
 }
 
@@ -36,25 +46,25 @@ void DAC_Set_Output_Frequency()
 
 void DAC_Start()
 {
-	OutputState.On = true;
-	DAC_Calculate_Sine_Buffer();
-	DAC_Set_Output_Frequency();
-	HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, OutputState.SineBuffer, 100, DAC_ALIGN_12B_R);
+	if(OutputState.Mode != p)
+	{
+		DAC_Calculate_Buffer();
+		DAC_Set_Output_Frequency();
+		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, OutputState.Buffer, 100, DAC_ALIGN_12B_R);
+		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
+		OutputState.On = true;
+	}
 }
 
 void DAC_Stop()
 {
 	OutputState.On = false;
 	HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+	HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
 }
 
-void DAC_Switch_Output_OnOff(uint8_t onoff)
+void DAC_Update_Output()
 {
-	if(onoff == '1'){
-		OutputState.On = true;
-		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_SET);
-	}else if(onoff == '0'){
-		OutputState.On = false;
-		HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_RESET);
-	}
+	DAC_Stop();
+	DAC_Start();
 }

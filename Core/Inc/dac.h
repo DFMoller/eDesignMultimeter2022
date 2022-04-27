@@ -13,7 +13,7 @@
 typedef enum OutputModes{d='d', s='s', p='p'} OutputMode;
 
 typedef struct OutputTemplate{
-	uint32_t SineBuffer[100];
+	uint32_t Buffer[100];
 	uint32_t TIM2_Clock;
 	bool On;
 	enum OutputModes Mode;
@@ -26,9 +26,9 @@ typedef struct OutputTemplate{
 
 extern OutputStateType OutputState;
 
-void DAC_Calculate_Sine_Buffer();
+void DAC_Calculate_Buffer();
 void DAC_Set_Output_Frequency();
 void DAC_Start();
-void DAC_Switch_Output_OnOff(uint8_t onoff);
+void DAC_Refresh_Output();
 
 #endif /* INC_DAC_H_ */

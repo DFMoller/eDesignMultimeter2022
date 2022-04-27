@@ -25,6 +25,7 @@ void UART_Main_Function()
 	{
 	  rx_bytes[rx_bytes_counter] = rx_stored[0];
 	  if(rx_bytes_counter == 0 && rx_stored[0] == '@'){
+		  rx_bytes_counter = 0;
 		  rx_bytes_counter++;
 	  } else if(rx_bytes_counter > 0){
 		  rx_bytes_counter++;
@@ -65,7 +66,9 @@ void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length)
 					break;
 				case 's':
 					// Request Status
-					DAC_Switch_Output_OnOff(rx_array[6]);
+					if(rx_array[6] == '1') OutputState.On = true;
+					else if(rx_array[6] == '0') OutputState.On = false;
+					DAC_Update_Output();
 					UART_Request_Status();
 					break;
 				default:
@@ -213,11 +216,12 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 {
 	uint8_t param = rx_array[4];
 	uint8_t val0 = rx_array[6];
-	uint8_t received_value = 0;
-	if(length > 9){
-		uint8_t val1 = rx_array[7];
-		uint8_t val2 = rx_array[8];
-		uint8_t val3 = rx_array[9];
+	uint16_t received_value = 0;
+	if(rx_array[7] != ','){
+		val0 = rx_array[6] - 48;
+		uint8_t val1 = rx_array[7] - 48;
+		uint8_t val2 = rx_array[8] - 48;
+		uint8_t val3 = rx_array[9] - 48;
 		received_value += val0*1000;
 		received_value += val1*100;
 		received_value += val2*10;
@@ -251,4 +255,5 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			break;
 	}
 	LCD_changeDisplayMode(Measurement);
+	DAC_Update_Output();
 }
