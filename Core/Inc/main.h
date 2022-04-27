@@ -54,7 +54,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void Delay_us_10(uint8_t tens);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

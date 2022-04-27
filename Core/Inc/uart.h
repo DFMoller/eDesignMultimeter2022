@@ -11,6 +11,7 @@
 #include <stdbool.h>
 
 extern uint8_t rx_byte[1];
+extern uint8_t rx_stored[1];
 
 void UART_Main_Function();
 bool UART_Rx_Complete(uint8_t last_byte);

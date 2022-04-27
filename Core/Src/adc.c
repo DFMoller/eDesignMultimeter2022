@@ -45,7 +45,7 @@ void ADC_Main_Function()
 		  }
 	  }
 	//			  measured_offset = total/1000;
-	  MeasurementState.Offset = 1000;
+//	  MeasurementState.Offset = 1000;
 	  for(int x = 0; x < 1000; x++)
 	  {
 		  // Calculate frequency
@@ -58,9 +58,9 @@ void ADC_Main_Function()
 	  }
 	  MeasurementState.Period = 50000/(mid_passes);
 	//			  MeasurementState.Frequency = 1000000/measured_period;
-	  MeasurementState.Frequency = 5250;
+//	  MeasurementState.Frequency = 5250;
 	//			  MeasurementState.Amplitude = max - min;
-	  MeasurementState.Amplitude = 500;
+//	  MeasurementState.Amplitude = 500;
 	//			  sprintf(msg, "Max: %u\nMin: %u\nOffset: %u\nFrequency: %u\nAmplitude: %u\n\n", max, min, offset, frequency, amplitude);
 	//			  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 10);
 		if(DisplayState.Mode == Measurement)

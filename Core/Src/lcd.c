@@ -14,8 +14,8 @@ extern TIM_HandleTypeDef htim16;
 extern UART_HandleTypeDef huart2;
 
 #define lcd_instruction_ClearDisplay    	0b00000001      // replace all characters with ASCII 'space'
-#define lcd_instruction_CursorHome			0b00000010
-//#define lcd_instruction_CursorHome			0b10000000
+#define lcd_instruction_ReturnHome			0b00000010
+#define lcd_instruction_CursorHome			0b10000000
 #define lcd_instruction_EntryMode       	0b00000110      // shift cursor from left to right on read/write
 #define lcd_instruction_DisplayOn      		0b00001111      // Display On, Cursor On, Cursor Blinking On (0b00001DCB)
 #define lcd_instruction_FunctionReset   	0b00110000      // reset the LCD
@@ -40,39 +40,57 @@ void LCD_Init()
 	HAL_Delay(20);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(10);
+	HAL_Delay(5);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(1);
+	Delay_us_10(11);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
-	HAL_Delay(10);
+	Delay_us_10(5);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionSet4bit);
-	HAL_Delay(1);
+	Delay_us_10(5);
 
 	LCD_Write_Instruction(lcd_instruction_FunctionSet4bit);
-	HAL_Delay(1);
+	Delay_us_10(5);
 
 	LCD_Write_Instruction(lcd_instruction_DisplayOn);
-	HAL_Delay(1);
+	Delay_us_10(5);
 
 	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
-	HAL_Delay(3);
+	HAL_Delay(2);
 
 	LCD_Write_Instruction(lcd_instruction_EntryMode);
-	HAL_Delay(1);
-
+	Delay_us_10(5);
+//	HAL_Delay(1);
 }
 
 void LCD_Write_String(uint8_t string[])
 {
+//	HAL_Delay(1);
 	int i = 0;
 	while (string[i] != 0)
 	{
 		LCD_Write_Character(string[i]);
 		i++;
-		HAL_Delay(1);
+//		HAL_Delay(1);
+	}
+}
+
+void LCD_Write_Character_Shift(uint8_t character)
+{
+	lcd_RS_GPIO_Port->ODR |= (1<<lcd_RS_bit);			// select data register (RS High)
+	LCD_Write_Nibbles(character);
+	if(DisplayState.CurrentLine == Topline){
+		DisplayState.ToplineCharacters ++;
+	} else if (DisplayState.CurrentLine == Bottomline){
+		DisplayState.BottomlineCharacters ++;
+	}
+	if((DisplayState.CurrentLine == Topline && DisplayState.ToplineCharacters > 15)
+			|| (DisplayState.CurrentLine == Bottomline && DisplayState.BottomlineCharacters > 15))
+	{
+		// Scroll Screen
+		LCD_Shift_Left();
 	}
 }
 
@@ -80,11 +98,10 @@ void LCD_Write_Character(uint8_t character)
 {
 	lcd_RS_GPIO_Port->ODR |= (1<<lcd_RS_bit);			// select data register (RS High)
 	LCD_Write_Nibbles(character);
-	DisplayState.NumCharacters += 1;
-	if(DisplayState.NumCharacters > 15)
-	{
-		// Scroll Screen
-		LCD_Write_Instruction(lcd_instruction_DisplayShiftLeft);
+	if(DisplayState.CurrentLine == Topline){
+		DisplayState.ToplineCharacters ++;
+	} else if (DisplayState.CurrentLine == Bottomline){
+		DisplayState.BottomlineCharacters ++;
 	}
 }
 
@@ -96,6 +113,7 @@ void LCD_Write_Instruction(uint8_t instruction)
 
 void LCD_Write_Nibbles(uint8_t byte)
 {
+	Delay_us_10(1); // tsu1 > 40ns
 	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);			// set E high
 	LCD_ZeroPins();
 
@@ -107,7 +125,8 @@ void LCD_Write_Nibbles(uint8_t byte)
 
 
 	// Pulse Enable
-	HAL_Delay(1);
+//	HAL_Delay(1);
+	Delay_us_10(10);
 	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);			// Set to 0
 	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);				// Set to 1
 
@@ -118,13 +137,15 @@ void LCD_Write_Nibbles(uint8_t byte)
 	if(byte & 1<<0)	lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
 
 	// Drop Enable
-	HAL_Delay(1);
+//	HAL_Delay(1);
+	Delay_us_10(10);
 	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);		// Set to 0
 }
 
 void LCD_Write_8bitInstruction(uint8_t byte)
 {
 	lcd_RS_GPIO_Port->ODR &= ~(1<<lcd_RS_bit);			// Set RS to 0
+	Delay_us_10(1); // tsu1 > 40ns
 	lcd_E_GPIO_Port->ODR |= (1<<lcd_E_bit);				// Set E to 1
 	LCD_ZeroPins();
 
@@ -134,7 +155,8 @@ void LCD_Write_8bitInstruction(uint8_t byte)
 	if(byte & 1<<5)	lcd_D5_GPIO_Port->ODR |= (1<<lcd_D5_bit);
 	if(byte & 1<<4)	lcd_D4_GPIO_Port->ODR |= (1<<lcd_D4_bit);
 
-	HAL_Delay(1);
+//	HAL_Delay(1);
+	Delay_us_10(1);
 	lcd_E_GPIO_Port->ODR &= ~(1<<lcd_E_bit);		// Set E to 0
 }
 
@@ -148,17 +170,72 @@ void LCD_ZeroPins()
 
 void LCD_Clear_Display()
 {
-	LCD_Write_Instruction(lcd_instruction_CursorHome);
+	LCD_Write_Instruction(lcd_instruction_ReturnHome);
+	Delay_us_10(200); // 2ms
 	LCD_Write_Instruction(lcd_instruction_ClearDisplay);
-//	HAL_Delay(3);
-//	LCD_Write_Instruction(lcd_instruction_EntryMode);
-	DisplayState.NumCharacters = 0;
+	Delay_us_10(200); // 2ms
+	DisplayState.ToplineCharacters = 0;
+	DisplayState.BottomlineCharacters = 0;
+	DisplayState.CurrentLine = Topline;
+	DisplayState.DisplayPosition = 0;
 }
 
 void LCD_NewLine()
 {
 	LCD_Write_Instruction(lcd_instruction_CursorNewLine);
-	DisplayState.NumCharacters = 0;
+	Delay_us_10(5);
+	DisplayState.CurrentLine = Bottomline;
+}
+
+void LCD_AutoScroll()
+{
+	uint8_t returnflag = DisplayState.DisplayPosition + 12;
+	uint8_t longestline;
+	if(DisplayState.ToplineCharacters >= DisplayState.BottomlineCharacters) longestline = DisplayState.ToplineCharacters;
+	else longestline = DisplayState.BottomlineCharacters;
+	if(longestline > 16)
+	{
+		if(returnflag > longestline)
+		{
+			LCD_Shift_Home();
+		}
+		else
+		{
+			LCD_Shift_Left();
+		}
+	}
+}
+
+void LCD_Shift_Left()
+{
+	LCD_Write_Instruction(lcd_instruction_DisplayShiftLeft);
+	Delay_us_10(5);
+	DisplayState.DisplayPosition ++;
+}
+
+void LCD_Shift_Right()
+{
+	LCD_Write_Instruction(lcd_instruction_DisplayShiftRight);
+	Delay_us_10(5);
+	DisplayState.DisplayPosition -= 1;
+}
+
+void LCD_Shift_Home()
+{
+	uint8_t num_shifted = DisplayState.DisplayPosition;
+	for(int i = 0; i < num_shifted; i++)
+	{
+		LCD_Shift_Right();
+	}
+}
+
+void LCD_Cursor_Home()
+{
+	LCD_Write_Instruction(lcd_instruction_CursorHome);
+	Delay_us_10(5);
+	DisplayState.ToplineCharacters = 0;
+	DisplayState.BottomlineCharacters = 0;
+	DisplayState.CurrentLine = Topline;
 }
 
 void LCD_changeDisplayMode(DisplayMode newDisplayMode)
@@ -171,6 +248,7 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 		LCD_Display_Menu();
+		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Menu;
 	}
 	else if (newDisplayMode == Measurement)
@@ -180,6 +258,7 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 		LCD_Display_Measurement();
+		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Measurement;
 	}
 	else if (newDisplayMode == Output)
@@ -188,8 +267,6 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
-		uint8_t topline[] = "Output";
-		LCD_Write_String(topline);
 		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Output;
 	}
@@ -203,7 +280,8 @@ void LCD_Display_Menu()
 
 void LCD_Display_Measurement()
 {
-	LCD_Clear_Display();
+//	LCD_Clear_Display();
+	LCD_Cursor_Home();
 	switch(MeasurementState.Mode)
 	{
 		case DV:

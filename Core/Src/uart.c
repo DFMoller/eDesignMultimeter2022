@@ -14,25 +14,26 @@
 extern UART_HandleTypeDef huart2;
 
 uint8_t rx_byte[1];
+uint8_t rx_stored[1];
 uint8_t rx_bytes[10] = {0};
 uint8_t rx_bytes_counter = 0;
+uint8_t count = 0;
 
 void UART_Main_Function()
 {
-	if(rx_byte[0] != '\n')
+	if(rx_stored[0] != '\n' && rx_stored[0] != '\0' && rx_stored[0] != 0x0a)
 	{
-	  rx_bytes[rx_bytes_counter] = rx_byte[0];
-	  if(rx_bytes_counter == 0 && rx_byte[0] == '@'){
+	  rx_bytes[rx_bytes_counter] = rx_stored[0];
+	  if(rx_bytes_counter == 0 && rx_stored[0] == '@'){
 		  rx_bytes_counter++;
 	  } else if(rx_bytes_counter > 0){
 		  rx_bytes_counter++;
-		  if(UART_Rx_Complete(rx_byte[0]))
+		  if(UART_Rx_Complete(rx_stored[0]))
 		  {
 			  UART_Interpret_Rx_Message(rx_bytes, rx_bytes_counter);
 			  rx_bytes_counter = 0;
 		  }
 	  }
-	  HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 	}
 }
 
@@ -90,11 +91,11 @@ void UART_Display_On_LCD(uint8_t rs, uint8_t byte)
 	if(rs == '1'){
 		// Set print flag; store rs and byte
 		DisplayState.PrintFlag = 1;
-		DisplayState.PrintRS = 1;
 		DisplayState.PrintByte = byte;
 	}else if(rs == '0'){
 		// Instruction
 		LCD_Write_Instruction(byte);
+		Delay_us_10(200); // 2ms
 	}
 }
 
@@ -204,6 +205,8 @@ void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2){
 		// Temperature
 		MeasurementState.Mode = TC;
 	}
+//	DisplayState.DisplayMeasurementsFlag = true;
+	LCD_changeDisplayMode(Measurement);
 }
 
 void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
@@ -247,4 +250,5 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			// Problems
 			break;
 	}
+	LCD_changeDisplayMode(Measurement);
 }

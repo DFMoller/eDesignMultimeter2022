@@ -60,7 +60,9 @@ DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim15;
 TIM_HandleTypeDef htim16;
+TIM_HandleTypeDef htim17;
 
 UART_HandleTypeDef huart2;
 
@@ -77,13 +79,9 @@ static void MX_TIM16_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM17_Init(void);
+static void MX_TIM15_Init(void);
 /* USER CODE BEGIN PFP */
-void LCD_changeDisplayMode(DisplayMode newDisplayMode);
-bool uartRxComplete(uint8_t last_byte);
-void interpret_rx_message(uint8_t *rx_array, uint8_t length);
-void request_measurement(uint8_t parameter);
-void request_status();
-void set_output_parameter(uint8_t *rx_array, uint8_t length);
 
 
 /* USER CODE END PFP */
@@ -101,16 +99,14 @@ uint8_t adc_timer_flag = 0;
 uint32_t last_ticks = 0;
 uint8_t message_received = 0;
 
-// VARIABLES OF INTEREST
-//uint16_t measured_amplitude = 0;
-//uint16_t measured_frequency = 0;
-//uint16_t measured_period = 0;
-//uint16_t measured_offset = 0;
-//uint8_t measurement_mode = 0;
+// Flag set every 10 us
+uint8_t us_10 = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	message_received = 1; // declared in file: uart.c
+	message_received = 1;
+	rx_stored[0] = rx_byte[0];
+	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -162,8 +158,19 @@ int main(void)
 	MeasurementState.Offset = 0;
 	MeasurementState.Period = 0;
 
-	DisplayState.NumCharacters = 0;
 	DisplayState.PrintFlag = 0;
+	DisplayState.RefreshFlag = 0;
+	DisplayState.AutoScrollCounter = 0;
+	DisplayState.DisplayPosition = 0;
+	DisplayState.ToplineCharacters = 0;
+	DisplayState.BottomlineCharacters = 0;
+	DisplayState.CurrentLine = Topline;
+	DisplayState.LastMode = Menu;
+
+	// Tempory Measurement Values
+	MeasurementState.Offset = 1000;
+	MeasurementState.Frequency = 5250;
+	MeasurementState.Amplitude = 500;
 
   /* USER CODE END 1 */
 
@@ -191,6 +198,8 @@ int main(void)
   MX_ADC1_Init();
   MX_DAC1_Init();
   MX_TIM2_Init();
+  MX_TIM17_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
   	// Transmit Student Number
@@ -200,10 +209,17 @@ int main(void)
 	// Init ADC Timer
 	HAL_TIM_Base_Start_IT(&htim16);
 
+	// Init LCD Refresh Timer
+	HAL_TIM_Base_Start_IT(&htim17);
+
+	// Init 10us Timer
+	HAL_TIM_Base_Start_IT(&htim15);
+
 	// Init LCD
 	LCD_Init();
 
 	// Init Display State
+	HAL_Delay(1);
 	LCD_changeDisplayMode(Menu);
 
 	// Init DAC Timer
@@ -215,17 +231,36 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if(DisplayState.RefreshFlag == 1)
+	  {
+		  if(DisplayState.Mode == Measurement)
+		  {
+//			  if(MeasurementState.Mode == AV || MeasurementState.Mode == AI)
+			  if(MeasurementState.Mode == AV)
+			  {
+				  DisplayState.AutoScrollCounter ++;
+				  if(DisplayState.AutoScrollCounter > 1)
+				  {
+					  MeasurementState.Amplitude += 1;
+					  if(MeasurementState.Amplitude > 2000) MeasurementState.Amplitude = 500;
+					  LCD_Display_Measurement();
+					  LCD_AutoScroll();
+					  DisplayState.AutoScrollCounter = 0;
+				  }
+			  }
+
+		  }
+		  DisplayState.RefreshFlag = 0;
+	  }
 
 	  // LCD UART OUTPUT JOB
 	  if(DisplayState.PrintFlag)
 	  {
-		  if(DisplayState.PrintRS == 1){
-			  if(DisplayState.Mode != Output)
-			  {
-				  LCD_changeDisplayMode(Output);
-			  }
-			  LCD_Write_Character(DisplayState.PrintByte);
+		  if(DisplayState.Mode != Output)
+		  {
+			  LCD_changeDisplayMode(Output);
 		  }
+		  LCD_Write_Character_Shift(DisplayState.PrintByte);
 		  DisplayState.PrintFlag = 0;
 	  }
 
@@ -244,6 +279,7 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
 			  {
 				  // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+//				  uint32_t code = HAL_UART_GetError(&huart2);
 			  }
 			  btn_up_flag = 0;
 		  }
@@ -255,6 +291,8 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
 			  {
 				  // HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+				  LCD_Write_Instruction(0b00011100);
+				  Delay_us_10(5);
 			  }
 			  btn_left_flag = 0;
 		  }
@@ -277,6 +315,8 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
 			  {
 				  // HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
+				  LCD_Write_Instruction(0b00011000);
+				  Delay_us_10(5);
 			  }
 			  btn_right_flag = 0;
 		  }
@@ -290,8 +330,10 @@ int main(void)
 				  // Toggle Menu Display state
 				  if(DisplayState.Mode == Menu){
 					  LCD_changeDisplayMode(Measurement);
-				  } else if(DisplayState.Mode == Measurement || DisplayState.Mode == Output){
+				  } else if(DisplayState.Mode == Measurement){
 					  LCD_changeDisplayMode(Menu);
+				  } else if(DisplayState.Mode == Output){
+					  LCD_changeDisplayMode(DisplayState.LastMode);
 				  }
 			  }
 			  btn_mid_flag = 0;
@@ -348,11 +390,14 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_TIM16
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_TIM15
+                              |RCC_PERIPHCLK_TIM16|RCC_PERIPHCLK_TIM17
                               |RCC_PERIPHCLK_ADC12|RCC_PERIPHCLK_TIM2;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.Adc12ClockSelection = RCC_ADC12PLLCLK_DIV1;
+  PeriphClkInit.Tim15ClockSelection = RCC_TIM15CLK_HCLK;
   PeriphClkInit.Tim16ClockSelection = RCC_TIM16CLK_HCLK;
+  PeriphClkInit.Tim17ClockSelection = RCC_TIM17CLK_HCLK;
   PeriphClkInit.Tim2ClockSelection = RCC_TIM2CLK_HCLK;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -507,6 +552,52 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM15 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM15_Init(void)
+{
+
+  /* USER CODE BEGIN TIM15_Init 0 */
+
+  /* USER CODE END TIM15_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM15_Init 1 */
+
+  /* USER CODE END TIM15_Init 1 */
+  htim15.Instance = TIM15;
+  htim15.Init.Prescaler = 72-1;
+  htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim15.Init.Period = 10-1;
+  htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim15.Init.RepetitionCounter = 0;
+  htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim15, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM15_Init 2 */
+
+  /* USER CODE END TIM15_Init 2 */
+
+}
+
+/**
   * @brief TIM16 Initialization Function
   * @param None
   * @retval None
@@ -535,6 +626,38 @@ static void MX_TIM16_Init(void)
   /* USER CODE BEGIN TIM16_Init 2 */
 
   /* USER CODE END TIM16_Init 2 */
+
+}
+
+/**
+  * @brief TIM17 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM17_Init(void)
+{
+
+  /* USER CODE BEGIN TIM17_Init 0 */
+
+  /* USER CODE END TIM17_Init 0 */
+
+  /* USER CODE BEGIN TIM17_Init 1 */
+
+  /* USER CODE END TIM17_Init 1 */
+  htim17.Instance = TIM17;
+  htim17.Init.Prescaler = 7200-1;
+  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim17.Init.Period = 5000-1;
+  htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim17.Init.RepetitionCounter = 0;
+  htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim17) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM17_Init 2 */
+
+  /* USER CODE END TIM17_Init 2 */
 
 }
 
@@ -690,17 +813,30 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	// Check which version of the timer triggered this interrupt
-	if(htim == &htim16)
-	{
+	if(htim == &htim16){
 		adc_timer_flag = 1;
+	} else if (htim == &htim17){
+		DisplayState.RefreshFlag = 1;
+	} else if (htim == &htim15){
+		us_10 = 1;
 	}
 }
 
-
-
+void Delay_us_10(uint8_t tens)
+{
+	uint8_t us_10_counter = 0;
+	while(us_10_counter < tens)
+	{
+		if(us_10){
+			us_10_counter ++;
+			us_10 = 0;
+		}
+	}
+}
 
 /* USER CODE END 4 */
 
