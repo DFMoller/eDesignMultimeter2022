@@ -338,10 +338,10 @@ void LCD_Display_Measurement()
 	if(OutputState.On){
 		if(OutputState.Mode == d){
 			uint8_t bottomline[] = "x.xxxV";
-			bottomline[0] = ((OutputState.DCValue/1000) % 10) + 48;
-			bottomline[2] = ((OutputState.DCValue/100) % 10) + 48;
-			bottomline[3] = ((OutputState.DCValue/10) % 10) + 48;
-			bottomline[4] = ((OutputState.DCValue) % 10) + 48;
+			bottomline[0] = ((OutputState.Offset/1000) % 10) + 48;
+			bottomline[2] = ((OutputState.Offset/100) % 10) + 48;
+			bottomline[3] = ((OutputState.Offset/10) % 10) + 48;
+			bottomline[4] = ((OutputState.Offset) % 10) + 48;
 			LCD_Write_String(bottomline);
 		} else if (OutputState.Mode == s){
 			uint8_t bottomline[] = "O:x.xxxV,A:x.xxxV,F:xxxxHz";

@@ -323,7 +323,7 @@ int main(void)
 	  }
 	  else if(btn_mid_flag)
 	  {
-		  if(HAL_GetTick() - last_ticks >= 55)
+		  if(HAL_GetTick() - last_ticks >= 20)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {

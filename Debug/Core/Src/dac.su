@@ -1,4 +1,4 @@
-dac.c:20:6:DAC_Calculate_Buffer	24	static
+dac.c:20:6:DAC_Calculate_Buffer	32	static
 dac.c:38:6:DAC_Set_Output_Frequency	4	static
 dac.c:47:6:DAC_Start	16	static
 dac.c:59:6:DAC_Stop	8	static

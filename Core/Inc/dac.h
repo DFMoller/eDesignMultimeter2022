@@ -29,6 +29,7 @@ extern OutputStateType OutputState;
 void DAC_Calculate_Buffer();
 void DAC_Set_Output_Frequency();
 void DAC_Start();
+void DAC_Stop();
 void DAC_Refresh_Output();
 
 #endif /* INC_DAC_H_ */

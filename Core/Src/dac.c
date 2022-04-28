@@ -23,14 +23,14 @@ void DAC_Calculate_Buffer()
 	{
 		for(int i=0; i<100; i++)
 		{
-			OutputState.Buffer[i] = OutputState.Offset * (4096/3300) * (1000 / 920) / 2;
+			OutputState.Buffer[i] = (float)((float)(OutputState.Offset) * (float)(4096/3300) * (float)((float)(1000 / 600) / 2));
 		}
 	}
 	else if (OutputState.Mode == s)
 	{
 		for(int i=0; i<100; i++)
 		{
-			OutputState.Buffer[i] = (float)((((float)OutputState.Amplitude/2)*sin(i*2*PI/100) + (float)OutputState.Offset)*(4096/3300) * (float)(1000 / 550) / 2);
+			OutputState.Buffer[i] = ((float)((float)OutputState.Amplitude/2)*(float)sin(i*2*(float)(PI/100)) + (float)((float)OutputState.Offset * (float)0.85))*((float)(4096/3300)) * (float)((float)(1.165) / 2);
 		}
 	}
 }

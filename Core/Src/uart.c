@@ -66,9 +66,12 @@ void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length)
 					break;
 				case 's':
 					// Request Status
-					if(rx_array[6] == '1') OutputState.On = true;
-					else if(rx_array[6] == '0') OutputState.On = false;
-					DAC_Update_Output();
+					if(rx_array[6] == '1'){
+						if(!OutputState.On) DAC_Start();
+					}
+					else if(rx_array[6] == '0'){
+						if(OutputState.On) DAC_Stop();
+					}
 					UART_Request_Status();
 					break;
 				default:
