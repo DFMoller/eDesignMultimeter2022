@@ -59,6 +59,8 @@ ADC_HandleTypeDef hadc1;
 DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac1_ch1;
 
+I2C_HandleTypeDef hi2c1;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim15;
 TIM_HandleTypeDef htim16;
@@ -80,6 +82,7 @@ static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM17_Init(void);
+static void MX_I2C1_Init(void);
 static void MX_TIM15_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -153,6 +156,13 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+	uint8_t Slave_Address = 0x80;
+//	uint8_t ConfigRegister_Address = 0x00;
+//	uint8_t ShuntVoltage_Address = 0x80;
+	uint8_t i2cdata[10];
+
+	HAL_StatusTypeDef res;
+
 	OutputState.TIM2_Clock = 72000000;
 	OutputState.On = false;
 	OutputState.Mode = d;
@@ -212,6 +222,7 @@ int main(void)
   MX_DAC1_Init();
   MX_TIM2_Init();
   MX_TIM17_Init();
+  MX_I2C1_Init();
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
@@ -237,6 +248,9 @@ int main(void)
 
 	// Init DAC Timer
 	HAL_TIM_Base_Start(&htim2);
+
+	//Testing
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4, GPIO_PIN_SET);
 
   /* USER CODE END 2 */
 
@@ -293,6 +307,44 @@ int main(void)
 			  {
 				  // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 //				  uint32_t code = HAL_UART_GetError(&huart2);
+
+				  // I2C Transmit
+				  i2cdata[0] = 0x00;
+				  i2cdata[1] = 0x39;
+				  i2cdata[2] = 0x9F;
+				  res = HAL_I2C_Master_Transmit(&hi2c1, Slave_Address, i2cdata, 3, 10);
+				  if(res != HAL_OK)
+				  {
+					  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Transmit Error!\n", 20, 10);
+					  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
+				  }
+				  else
+				  {
+					  // I2C Receive
+					  i2cdata[0] = 0x01;
+					  // Set Pointer
+					  HAL_I2C_Master_Transmit(&hi2c1, Slave_Address, i2cdata, 1, 10);
+					  if(res != HAL_OK)
+					  {
+						  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Transmit Pointer Change Error!\n", 35, 10);
+						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
+					  }
+					  // Read
+					  uint8_t bytes[2] = {0};
+					  HAL_I2C_Master_Receive(&hi2c1, Slave_Address, bytes, 2, 10);
+					  if(res != HAL_OK)
+					  {
+						  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Receive Error!\n", 19, 10);
+						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
+					  } else
+					  {
+						  float voltage = (float)bytes[1]/100;
+						  float current = voltage/0.1;
+						  HAL_UART_Transmit(&huart2, bytes, 2, 10);
+						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
+					  }
+				  }
+
 			  }
 			  btn_up_flag = 0;
 		  }
@@ -403,11 +455,13 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_TIM15
-                              |RCC_PERIPHCLK_TIM16|RCC_PERIPHCLK_TIM17
-                              |RCC_PERIPHCLK_ADC12|RCC_PERIPHCLK_TIM2;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_TIM15|RCC_PERIPHCLK_TIM16
+                              |RCC_PERIPHCLK_TIM17|RCC_PERIPHCLK_ADC12
+                              |RCC_PERIPHCLK_TIM2;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.Adc12ClockSelection = RCC_ADC12PLLCLK_DIV1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
   PeriphClkInit.Tim15ClockSelection = RCC_TIM15CLK_HCLK;
   PeriphClkInit.Tim16ClockSelection = RCC_TIM16CLK_HCLK;
   PeriphClkInit.Tim17ClockSelection = RCC_TIM17CLK_HCLK;
@@ -516,6 +570,52 @@ static void MX_DAC1_Init(void)
   /* USER CODE BEGIN DAC1_Init 2 */
 
   /* USER CODE END DAC1_Init 2 */
+
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x2000090E;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Analogue filter 
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Digital filter 
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
 
 }
 

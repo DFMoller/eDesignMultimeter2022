@@ -80,6 +80,6 @@ void ADC_Main_Function()
 	  adc_count++;
 	}
 
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
+//	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_4);
 }
 
