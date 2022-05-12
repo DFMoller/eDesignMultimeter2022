@@ -97,16 +97,25 @@ uint8_t btn_left_flag = 0;
 uint8_t btn_down_flag = 0;
 uint8_t adc_timer_flag = 0;
 uint32_t last_ticks = 0;
-uint8_t message_received = 0;
 
 // Flag set every 10 us
 uint8_t us_10 = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	message_received = 1;
-	rx_stored[0] = rx_byte[0];
-	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	if((UartState.rx_bytes_counter == 0 && UartState.rx_byte[0] == '@') || UartState.rx_bytes_counter > 0)
+	{
+		UartState.rx_bytes[UartState.rx_bytes_counter] = UartState.rx_byte[0];
+		UartState.rx_bytes_counter += 1;
+
+		if(UartState.rx_byte[0] == '!')
+		{
+			UartState.message_received = 1;
+			UartState.rx_bytes_length = UartState.rx_bytes_counter;
+			UartState.rx_bytes_counter = 0;
+		}
+	}
+	HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -172,6 +181,10 @@ int main(void)
 	MeasurementState.Frequency = 5250;
 	MeasurementState.Amplitude = 500;
 
+	UartState.rx_bytes_counter = 0;
+	UartState.rx_bytes_length = 0;
+	UartState.message_received = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -204,7 +217,7 @@ int main(void)
 
   	// Transmit Student Number
 	HAL_UART_Transmit(&huart2, std_num, 13, 10);
-	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
 
 	// Init ADC Timer
 	HAL_TIM_Base_Start_IT(&htim16);
@@ -265,10 +278,10 @@ int main(void)
 	  }
 
 	  // UART JOB
-	  if(message_received)
+	  if(UartState.message_received)
 	  {
-		  UART_Main_Function();
-		  message_received = 0;
+		  UART_Interpret_Rx_Message();
+		  UartState.message_received = 0;
 	  }
 
 	  // BUTTONS JOB

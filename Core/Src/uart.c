@@ -13,81 +13,46 @@
 
 extern UART_HandleTypeDef huart2;
 
-uint8_t rx_byte[1];
-uint8_t rx_stored[1];
-uint8_t rx_bytes[10] = {0};
-uint8_t rx_bytes_counter = 0;
-uint8_t count = 0;
+UartStructType UartState;
 
-void UART_Main_Function()
+void UART_Interpret_Rx_Message()
 {
-	if(rx_stored[0] != '\n' && rx_stored[0] != '\0' && rx_stored[0] != 0x0a)
+	if(UartState.rx_bytes_length > 7)
 	{
-	  rx_bytes[rx_bytes_counter] = rx_stored[0];
-	  if(rx_bytes_counter == 0 && rx_stored[0] == '@'){
-		  rx_bytes_counter = 0;
-		  rx_bytes_counter++;
-	  } else if(rx_bytes_counter > 0){
-		  rx_bytes_counter++;
-		  if(UART_Rx_Complete(rx_stored[0]))
-		  {
-			  UART_Interpret_Rx_Message(rx_bytes, rx_bytes_counter);
-			  rx_bytes_counter = 0;
-		  }
-	  }
-	}
-}
-
-bool UART_Rx_Complete(uint8_t last_byte)
-{
-	if(last_byte == '!')
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length)
-{
-
-	if(length > 7)
-	{
-		if(rx_array[2] == '*')
+		if(UartState.rx_bytes[2] == '*')
 		{
 			// Requests
-			switch(rx_array[4])
+			switch(UartState.rx_bytes[4])
 			{
 				case 'm':
 					// Request Measurement
-					UART_Request_Measurement(rx_array[6]);
+					UART_Request_Measurement(UartState.rx_bytes[6]);
 					break;
 				case 's':
 					// Request Status
-					if(rx_array[6] == '1'){
+					if(UartState.rx_bytes[6] == '1'){
 						if(!OutputState.On) DAC_Start();
 					}
-					else if(rx_array[6] == '0'){
+					else if(UartState.rx_bytes[6] == '0'){
 						if(OutputState.On) DAC_Stop();
 					}
 					UART_Request_Status();
+					LCD_changeDisplayMode(Measurement);
 					break;
 				default:
 					// Problems
 					break;
 			}
 		}
-		else if(rx_array[2] == '$'){
+		else if(UartState.rx_bytes[2] == '$'){
 			// Set Measurement Mode
-			UART_Set_Measurement_Mode(rx_array[4], rx_array[5]);
-		}else if(rx_array[2] == '^'){
+			UART_Set_Measurement_Mode(UartState.rx_bytes[4], UartState.rx_bytes[5]);
+		}else if(UartState.rx_bytes[2] == '^'){
 			// Set output Parameter
-			UART_Set_Output_Parameter(rx_array, length);
-		}else if(rx_array[2] == '#'){
+			UART_Set_Output_Parameter(UartState.rx_bytes, UartState.rx_bytes_length);
+		}else if(UartState.rx_bytes[2] == '#'){
 			// Display on LCD
-			UART_Display_On_LCD(rx_array[4], rx_array[6]);
+			UART_Display_On_LCD(UartState.rx_bytes[4], UartState.rx_bytes[6]);
 		}
 	}
 }
@@ -147,7 +112,7 @@ void UART_Request_Measurement(uint8_t parameter)
 			break;
 	}
 	HAL_UART_Transmit(&huart2, msg, 13, 10);
-	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
 }
 
 void UART_Request_Status()
@@ -190,7 +155,7 @@ void UART_Request_Status()
 		msg[7] = '0';
 	}
 	HAL_UART_Transmit(&huart2, msg, 11, 10);
-	HAL_UART_Receive_IT(&huart2, rx_byte, 1);
+	HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
 
 }
 

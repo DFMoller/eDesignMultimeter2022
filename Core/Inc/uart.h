@@ -8,14 +8,17 @@
 #ifndef INC_UART_H_
 #define INC_UART_H_
 
-#include <stdbool.h>
+typedef struct UartStructTemplate{
+	uint8_t rx_byte[1];
+	uint8_t rx_bytes[10];
+	uint8_t rx_bytes_counter;
+	uint8_t rx_bytes_length;
+	uint8_t message_received;
+} UartStructType;
 
-extern uint8_t rx_byte[1];
-extern uint8_t rx_stored[1];
+extern UartStructType UartState;
 
-void UART_Main_Function();
-bool UART_Rx_Complete(uint8_t last_byte);
-void UART_Interpret_Rx_Message(uint8_t *rx_array, uint8_t length);
+void UART_Interpret_Rx_Message();
 void UART_Request_Measurement(uint8_t parameter);
 void UART_Request_Status();
 void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2);
