@@ -22,6 +22,7 @@ typedef struct OutputTemplate{
 	uint16_t DCValue;
 	uint16_t Offset;
 	uint32_t ARR_Val;
+	uint8_t DutyCycle;
 } OutputStateType;
 
 extern OutputStateType OutputState;

@@ -33,7 +33,7 @@ Core/Src/lcd.o: ../Core/Src/lcd.c ../Core/Inc/main.h \
  ../Drivers/STM32F3xx_HAL_Driver/Inc/stm32f3xx_hal_tim_ex.h \
  ../Drivers/STM32F3xx_HAL_Driver/Inc/stm32f3xx_hal_uart.h \
  ../Drivers/STM32F3xx_HAL_Driver/Inc/stm32f3xx_hal_uart_ex.h \
- ../Core/Inc/lcd.h ../Core/Inc/adc.h ../Core/Inc/dac.h
+ ../Core/Inc/lcd.h ../Core/Inc/adc.h ../Core/Inc/dac.h ../Core/Inc/i2c.h
 
 ../Core/Inc/main.h:
 
@@ -110,3 +110,5 @@ Core/Src/lcd.o: ../Core/Src/lcd.c ../Core/Inc/main.h \
 ../Core/Inc/adc.h:
 
 ../Core/Inc/dac.h:
+
+../Core/Inc/i2c.h:

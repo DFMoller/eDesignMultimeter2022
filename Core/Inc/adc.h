@@ -8,7 +8,7 @@
 #ifndef INC_ADC_H_
 #define INC_ADC_H_
 
-typedef enum MeasurementModes {DV, DI, AV, AI, TC} MeasurementMode;
+typedef enum MeasurementModes {DV, DI, AV, AI} MeasurementMode;
 
 typedef struct MeasurementTemplate{
 	enum MeasurementModes Mode;

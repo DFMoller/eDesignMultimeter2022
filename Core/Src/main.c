@@ -31,6 +31,7 @@
 #include "dac.h"
 #include "uart.h"
 #include "adc.h"
+#include "i2c.h"
 
 /* USER CODE END Includes */
 
@@ -156,13 +157,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-	uint8_t Slave_Address = 0x80;
-//	uint8_t ConfigRegister_Address = 0x00;
-//	uint8_t ShuntVoltage_Address = 0x80;
-	uint8_t i2cdata[10];
-
-	HAL_StatusTypeDef res;
-
 	OutputState.TIM2_Clock = 72000000;
 	OutputState.On = false;
 	OutputState.Mode = d;
@@ -170,12 +164,18 @@ int main(void)
 	OutputState.Offset = 1200;
 	OutputState.Frequency = 1000;
 	OutputState.DCValue = 1000;
+	OutputState.DutyCycle = 25;
 
 	MeasurementState.Mode = DV;
 	MeasurementState.Amplitude = 0;
 	MeasurementState.Frequency = 0;
 	MeasurementState.Offset = 0;
 	MeasurementState.Period = 0;
+
+	CurrentState.Amplitude = 0;
+	CurrentState.Frequency = 0;
+	CurrentState.Offset = 0;
+	CurrentState.Period = 0;
 
 	DisplayState.PrintFlag = 0;
 	DisplayState.RefreshFlag = 0;
@@ -194,6 +194,8 @@ int main(void)
 	UartState.rx_bytes_counter = 0;
 	UartState.rx_bytes_length = 0;
 	UartState.message_received = 0;
+
+	CurrentState.Measure_Flag = 0;
 
   /* USER CODE END 1 */
 
@@ -252,6 +254,9 @@ int main(void)
 	//Testing
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4, GPIO_PIN_SET);
 
+	// Init Current Sensor
+	Init_Current_Sensor();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -262,20 +267,17 @@ int main(void)
 	  {
 		  if(DisplayState.Mode == Measurement)
 		  {
+			  LCD_Display_Measurement();
 //			  if(MeasurementState.Mode == AV || MeasurementState.Mode == AI)
-			  if(MeasurementState.Mode == AV)
+			  if(MeasurementState.Mode == AV || (OutputState.On && OutputState.Mode != 'd'))
 			  {
 				  DisplayState.AutoScrollCounter ++;
-				  if(DisplayState.AutoScrollCounter > 1)
+				  if(DisplayState.AutoScrollCounter > 2)
 				  {
-					  MeasurementState.Amplitude += 1;
-					  if(MeasurementState.Amplitude > 2000) MeasurementState.Amplitude = 500;
-					  LCD_Display_Measurement();
 					  LCD_AutoScroll();
 					  DisplayState.AutoScrollCounter = 0;
 				  }
 			  }
-
 		  }
 		  DisplayState.RefreshFlag = 0;
 	  }
@@ -298,6 +300,13 @@ int main(void)
 		  UartState.message_received = 0;
 	  }
 
+	  // CURRENT JOB
+	  if(CurrentState.Measure_Flag)
+	  {
+		  Read_Current();
+		  CurrentState.Measure_Flag = 0;
+	  }
+
 	  // BUTTONS JOB
 	  if(btn_up_flag)
 	  {
@@ -307,44 +316,7 @@ int main(void)
 			  {
 				  // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 //				  uint32_t code = HAL_UART_GetError(&huart2);
-
-				  // I2C Transmit
-				  i2cdata[0] = 0x00;
-				  i2cdata[1] = 0x39;
-				  i2cdata[2] = 0x9F;
-				  res = HAL_I2C_Master_Transmit(&hi2c1, Slave_Address, i2cdata, 3, 10);
-				  if(res != HAL_OK)
-				  {
-					  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Transmit Error!\n", 20, 10);
-					  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
-				  }
-				  else
-				  {
-					  // I2C Receive
-					  i2cdata[0] = 0x01;
-					  // Set Pointer
-					  HAL_I2C_Master_Transmit(&hi2c1, Slave_Address, i2cdata, 1, 10);
-					  if(res != HAL_OK)
-					  {
-						  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Transmit Pointer Change Error!\n", 35, 10);
-						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
-					  }
-					  // Read
-					  uint8_t bytes[2] = {0};
-					  HAL_I2C_Master_Receive(&hi2c1, Slave_Address, bytes, 2, 10);
-					  if(res != HAL_OK)
-					  {
-						  HAL_UART_Transmit(&huart2, (uint8_t*)"I2C Receive Error!\n", 19, 10);
-						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
-					  } else
-					  {
-						  float voltage = (float)bytes[1]/100;
-						  float current = voltage/0.1;
-						  HAL_UART_Transmit(&huart2, bytes, 2, 10);
-						  HAL_UART_Receive_IT(&huart2, UartState.rx_byte, 1);
-					  }
-				  }
-
+				  Read_Current();
 			  }
 			  btn_up_flag = 0;
 		  }
@@ -934,6 +906,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		adc_timer_flag = 1;
 	} else if (htim == &htim17){
 		DisplayState.RefreshFlag = 1;
+		CurrentState.Measure_Flag = 1;
 	} else if (htim == &htim15){
 		us_10 = 1;
 	}

@@ -10,6 +10,7 @@
 #include "dac.h"
 #include "adc.h"
 #include "lcd.h"
+#include "i2c.h"
 
 extern UART_HandleTypeDef huart2;
 
@@ -73,39 +74,43 @@ void UART_Display_On_LCD(uint8_t rs, uint8_t byte)
 void UART_Request_Measurement(uint8_t parameter)
 {
 	uint8_t msg[13] = "@,m,x,xxxx,!\n";
+	uint16_t a = 0;
+	uint16_t o = 0;
+	uint16_t f = 0;
+	if(MeasurementState.Mode == DV || MeasurementState.Mode == AV)
+	{
+		a = MeasurementState.Amplitude;
+		o = MeasurementState.Offset;
+		f = MeasurementState.Frequency;
+	} else {
+		a = CurrentState.Amplitude;
+		o = CurrentState.Offset;
+		f = CurrentState.Frequency;
+	}
 	switch(parameter){
-		case 't':
-			// Type
-			break;
 		case 'a':
 			// Amplitude (peak-to-peak)
 			msg[4] = 'a';
-			msg[6] = ((MeasurementState.Amplitude/1000) % 10) + 48;
-			msg[7] = ((MeasurementState.Amplitude/100) % 10) + 48;
-			msg[8] = ((MeasurementState.Amplitude/10) % 10) + 48;
-			msg[9] = (MeasurementState.Amplitude % 10) + 48;
+			msg[6] = ((a/1000) % 10) + 48;
+			msg[7] = ((a/100) % 10) + 48;
+			msg[8] = ((a/10) % 10) + 48;
+			msg[9] = (a % 10) + 48;
 			break;
 		case 'o':
 			// Offset
 			msg[4] = 'o';
-			msg[6] = ((MeasurementState.Offset/1000) % 10) + 48;
-			msg[7] = ((MeasurementState.Offset/100) % 10) + 48;
-			msg[8] = ((MeasurementState.Offset/10) % 10) + 48;
-			msg[9] = (MeasurementState.Offset % 10) + 48;
+			msg[6] = ((o/1000) % 10) + 48;
+			msg[7] = ((o/100) % 10) + 48;
+			msg[8] = ((o/10) % 10) + 48;
+			msg[9] = (o % 10) + 48;
 			break;
 		case 'f':
 			// Frequency
 			msg[4] = 'f';
-			msg[6] = ((MeasurementState.Frequency/1000) % 10) + 48;
-			msg[7] = ((MeasurementState.Frequency/100) % 10) + 48;
-			msg[8] = ((MeasurementState.Frequency/10) % 10) + 48;
-			msg[9] = (MeasurementState.Frequency % 10) + 48;
-			break;
-		case 'd':
-			// Duty Cycle
-			break;
-		case 'c':
-			// Temperature
+			msg[6] = ((f/1000) % 10) + 48;
+			msg[7] = ((f/100) % 10) + 48;
+			msg[8] = ((f/10) % 10) + 48;
+			msg[9] = (f % 10) + 48;
 			break;
 		default:
 			// Problems
@@ -139,11 +144,6 @@ void UART_Request_Status()
 			msg[2] = 'A';
 			msg[3] = 'I';
 			break;
-		case TC:
-			// TC
-			msg[2] = 'T';
-			msg[3] = 'C';
-			break;
 		default:
 			// Problems
 			break;
@@ -172,9 +172,6 @@ void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2){
 	} else if (key1 == 'A' && key2 == 'I'){
 		// AC Current
 		MeasurementState.Mode = AI;
-	} else if (key1 == 'T' && key2 == 'C'){
-		// Temperature
-		MeasurementState.Mode = TC;
 	}
 //	DisplayState.DisplayMeasurementsFlag = true;
 	LCD_changeDisplayMode(Measurement);
@@ -214,6 +211,7 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			break;
 		case 'd':
 			// Duty Cycle
+			OutputState.DutyCycle = received_value;
 			break;
 		case 'c':
 			// Temperature
@@ -223,5 +221,8 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			break;
 	}
 	LCD_changeDisplayMode(Measurement);
-	DAC_Update_Output();
+	if(OutputState.On)
+	{
+		DAC_Update_Output();
+	}
 }

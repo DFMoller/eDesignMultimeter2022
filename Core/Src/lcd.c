@@ -9,6 +9,7 @@
 #include "lcd.h"
 #include "adc.h"
 #include "dac.h"
+#include "i2c.h"
 
 extern TIM_HandleTypeDef htim16;
 extern UART_HandleTypeDef huart2;
@@ -36,7 +37,6 @@ DisplayStateType DisplayState;
 
 void LCD_Init()
 {
-
 	HAL_Delay(20);
 
 	LCD_Write_8bitInstruction(lcd_instruction_FunctionReset);
@@ -62,7 +62,6 @@ void LCD_Init()
 
 	LCD_Write_Instruction(lcd_instruction_EntryMode);
 	Delay_us_10(5);
-//	HAL_Delay(1);
 }
 
 void LCD_Write_String(uint8_t string[])
@@ -296,7 +295,11 @@ void LCD_Display_Measurement()
 		}
 		case DI:
 		{
-			uint8_t topline[] = "DC Current";
+			uint8_t topline[] = "xxx.xmA";
+			topline[0] = ((CurrentState.Offset/100000) % 10) + 48;
+			topline[1] = ((CurrentState.Offset/10000) % 10) + 48;
+			topline[2] = ((CurrentState.Offset/1000) % 10) + 48;
+			topline[4] = ((CurrentState.Offset/100) % 10) + 48;
 			LCD_Write_String(topline);
 			break;
 		}
@@ -321,12 +324,6 @@ void LCD_Display_Measurement()
 		case AI:
 		{
 			uint8_t topline[] = "AC Current";
-			LCD_Write_String(topline);
-			break;
-		}
-		case TC:
-		{
-			uint8_t topline[] = "Temperature";
 			LCD_Write_String(topline);
 			break;
 		}
@@ -359,7 +356,23 @@ void LCD_Display_Measurement()
 			bottomline[23] = ((OutputState.Frequency) % 10) + 48;
 			LCD_Write_String(bottomline);
 		} else if (OutputState.Mode == p){
-			// Pass
+			uint8_t bottomline[] = "O:x.xxxV,A:x.xxxV,F:xxxxHz,D:xxx%";
+			bottomline[2] = ((OutputState.Offset/1000) % 10) + 48;
+			bottomline[4] = ((OutputState.Offset/100) % 10) + 48;
+			bottomline[5] = ((OutputState.Offset/10) % 10) + 48;
+			bottomline[6] = ((OutputState.Offset) % 10) + 48;
+			bottomline[11] = ((OutputState.Amplitude/1000) % 10) + 48;
+			bottomline[13] = ((OutputState.Amplitude/100) % 10) + 48;
+			bottomline[14] = ((OutputState.Amplitude/10) % 10) + 48;
+			bottomline[15] = ((OutputState.Amplitude) % 10) + 48;
+			bottomline[20] = ((OutputState.Frequency/1000) % 10) + 48;
+			bottomline[21] = ((OutputState.Frequency/100) % 10) + 48;
+			bottomline[22] = ((OutputState.Frequency/10) % 10) + 48;
+			bottomline[23] = ((OutputState.Frequency) % 10) + 48;
+			bottomline[29] = ((OutputState.DutyCycle/100) % 10) + 48;
+			bottomline[30] = ((OutputState.DutyCycle/10) % 10) + 48;
+			bottomline[31] = ((OutputState.DutyCycle) % 10) + 48;
+			LCD_Write_String(bottomline);
 		}
 	} else {
 		uint8_t bottomline[] = "OUTPUT OFF";
