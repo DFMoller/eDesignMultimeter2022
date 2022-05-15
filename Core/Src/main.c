@@ -185,6 +185,7 @@ int main(void)
 	DisplayState.BottomlineCharacters = 0;
 	DisplayState.CurrentLine = Topline;
 	DisplayState.LastMode = Menu;
+	DisplayState.CurrentBranch = Top;
 
 	// Tempory Measurement Values
 	MeasurementState.Offset = 1000;
@@ -263,6 +264,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  // LCD Refresh Flag
 	  if(DisplayState.RefreshFlag == 1)
 	  {
 		  if(DisplayState.Mode == Measurement)
@@ -314,9 +316,11 @@ int main(void)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_up_GPIO_Port, btn_up_Pin))
 			  {
-				  // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
 //				  uint32_t code = HAL_UART_GetError(&huart2);
-				  Read_Current();
+				  if(DisplayState.Mode == Menu)
+				  {
+					  LCD_Branch_Action(Up);
+				  }
 			  }
 			  btn_up_flag = 0;
 		  }
@@ -327,9 +331,15 @@ int main(void)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_left_GPIO_Port, btn_left_Pin))
 			  {
-				  // HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-				  LCD_Write_Instruction(0b00011100);
-				  Delay_us_10(5);
+				  if(DisplayState.Mode == Menu)
+				  {
+					  LCD_Branch_Action(Left);
+				  }
+				  else
+				  {
+					  LCD_Write_Instruction(0b00011100); // Scroll
+					  Delay_us_10(5);
+				  }
 			  }
 			  btn_left_flag = 0;
 		  }
@@ -340,7 +350,10 @@ int main(void)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_down_GPIO_Port, btn_down_Pin))
 			  {
-				  // HAL_GPIO_TogglePin(LD4_GPIO_Port, LD4_Pin);
+				  if(DisplayState.Mode == Menu)
+				  {
+					  LCD_Branch_Action(Down);
+				  }
 			  }
 			  btn_down_flag = 0;
 		  }
@@ -351,9 +364,15 @@ int main(void)
 		  {
 			  if(HAL_GPIO_ReadPin(btn_right_GPIO_Port, btn_right_Pin))
 			  {
-				  // HAL_GPIO_TogglePin(LD5_GPIO_Port, LD5_Pin);
-				  LCD_Write_Instruction(0b00011000);
-				  Delay_us_10(5);
+				  if(DisplayState.Mode == Menu)
+				  {
+					  LCD_Branch_Action(Right);
+				  }
+				  else
+				  {
+					  LCD_Write_Instruction(0b00011000); // Scroll
+					  Delay_us_10(5);
+				  }
 			  }
 			  btn_right_flag = 0;
 		  }
@@ -365,11 +384,23 @@ int main(void)
 			  if(HAL_GPIO_ReadPin(btn_mid_GPIO_Port, btn_mid_Pin))
 			  {
 				  // Toggle Menu Display state
-				  if(DisplayState.Mode == Menu){
-					  LCD_changeDisplayMode(Measurement);
-				  } else if(DisplayState.Mode == Measurement){
+				  if(DisplayState.Mode == Menu)
+				  {
+					  if(DisplayState.CurrentBranch == Top)
+					  {
+						  LCD_changeDisplayMode(Measurement);
+					  }
+					  else
+					  {
+						  LCD_Branch_Action(Enter);
+					  }
+				  }
+				  else if(DisplayState.Mode == Measurement)
+				  {
 					  LCD_changeDisplayMode(Menu);
-				  } else if(DisplayState.Mode == Output){
+				  }
+				  else if(DisplayState.Mode == Output)
+				  {
 					  LCD_changeDisplayMode(DisplayState.LastMode);
 				  }
 			  }

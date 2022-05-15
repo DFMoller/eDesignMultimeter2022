@@ -221,8 +221,5 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			break;
 	}
 	LCD_changeDisplayMode(Measurement);
-	if(OutputState.On)
-	{
-		DAC_Update_Output();
-	}
+	if(OutputState.On) DAC_Update_Output();
 }

@@ -273,8 +273,251 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 
 void LCD_Display_Menu()
 {
-	uint8_t lcd_string[] = "Menu Top Level";
-	LCD_Write_String(lcd_string);
+	LCD_Clear_Display();
+	switch(DisplayState.CurrentBranch)
+	{
+		case Top:
+		{
+			uint8_t lcd_string[] = "Menu Top Level";
+			LCD_Write_String(lcd_string);
+			break;
+		}
+		case Measure:
+		{
+			uint8_t topline[] = "Multimeter";
+			uint8_t bottomline[] = "Measurement";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case Signal:
+		{
+			uint8_t topline[] = "Signal";
+			uint8_t bottomline[] = "Generator";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case DC_V:
+		{
+			uint8_t topline[] = "DC Voltage";
+			uint8_t bottomline[] = "Mode";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case DC_I:
+		{
+			uint8_t topline[] = "DC Current";
+			uint8_t bottomline[] = "Mode";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case AC_V:
+		{
+			uint8_t topline[] = "AC Voltage";
+			uint8_t bottomline[] = "Mode";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case AC_I:
+		{
+			uint8_t topline[] = "AC Current";
+			uint8_t bottomline[] = "Mode";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case Type:
+		{
+			uint8_t lcd_string[] = "Signal Type";
+			LCD_Write_String(lcd_string);
+			break;
+		}
+		case Parameter:
+		{
+			uint8_t lcd_string[] = "Signal Parameter";
+			LCD_Write_String(lcd_string);
+			break;
+		}
+		case OnOff:
+		{
+			uint8_t lcd_string[] = "Signal ON/OFF";
+			LCD_Write_String(lcd_string);
+			break;
+		}
+		case DC_OUT:
+		{
+			uint8_t topline[] = "DC";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			if(OutputState.Mode == d)
+			{
+				uint8_t bottomline[] = "Signal - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Signal";
+				LCD_Write_String(bottomline);
+			}
+			break;
+		}
+		case SINUSOIDAL_OUT:
+		{
+			uint8_t topline[] = "Sinusoidal";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			if(OutputState.Mode == s)
+			{
+				uint8_t bottomline[] = "Signal - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Signal";
+				LCD_Write_String(bottomline);
+			}
+			break;
+		}
+		case PULSE_OUT:
+		{
+			uint8_t topline[] = "Pulse";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			if(OutputState.Mode == p)
+			{
+				uint8_t bottomline[] = "Signal - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Signal";
+				LCD_Write_String(bottomline);
+			}
+			break;
+		}
+		case Amp:
+		{
+			uint8_t topline[] = "Amplitude";
+			LCD_Write_String(topline);
+			break;
+		}
+		case Offset:
+		{
+			uint8_t topline[] = "Offset";
+			LCD_Write_String(topline);
+			break;
+		}
+		case Freq:
+		{
+			uint8_t topline[] = "Frequency";
+			LCD_Write_String(topline);
+			break;
+		}
+		case Duty:
+		{
+			uint8_t topline[] = "Duty Cycle";
+			LCD_Write_String(topline);
+			break;
+		}
+		case Amp_Val:
+		{
+			uint8_t topline[] = "Amplitude";
+			uint8_t bottomline[] = "xxxx mV ";
+			if (OutputState.Amplitude_Temp < 0) OutputState.Amplitude_Temp = 0;
+			if (OutputState.Amplitude_Temp > 3300) OutputState.Amplitude_Temp = 3300;
+			if(OutputState.Amplitude_Temp != OutputState.Amplitude) bottomline[7] = '*';
+			bottomline[0] = (OutputState.Amplitude_Temp/1000) % 10 + 48;
+			bottomline[1] = (OutputState.Amplitude_Temp/100) % 10 + 48;
+			bottomline[2] = (OutputState.Amplitude_Temp/10) % 10 + 48;
+			bottomline[3] = (OutputState.Amplitude_Temp) % 10 + 48;
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case Offset_Val:
+		{
+			uint8_t topline[] = "Offset";
+			uint8_t bottomline[] = "xxxx mV ";
+			if (OutputState.Offset_Temp < 0) OutputState.Offset_Temp = 0;
+			if (OutputState.Offset_Temp > 3300) OutputState.Offset_Temp = 3300;
+			if(OutputState.Offset_Temp != OutputState.Offset) bottomline[7] = '*';
+			bottomline[0] = (OutputState.Offset_Temp/1000) % 10 + 48;
+			bottomline[1] = (OutputState.Offset_Temp/100) % 10 + 48;
+			bottomline[2] = (OutputState.Offset_Temp/10) % 10 + 48;
+			bottomline[3] = (OutputState.Offset_Temp) % 10 + 48;
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case Freq_Val:
+		{
+			uint8_t topline[] = "Frequency";
+			uint8_t bottomline[] = "xxxx Hz ";
+			if (OutputState.Frequency_Temp < 0) OutputState.Frequency_Temp = 0;
+			if (OutputState.Frequency_Temp > 3300) OutputState.Frequency_Temp = 3300;
+			if(OutputState.Frequency_Temp != OutputState.Frequency) bottomline[7] = '*';
+			bottomline[0] = (OutputState.Frequency_Temp/1000) % 10 + 48;
+			bottomline[1] = (OutputState.Frequency_Temp/100) % 10 + 48;
+			bottomline[2] = (OutputState.Frequency_Temp/10) % 10 + 48;
+			bottomline[3] = (OutputState.Frequency_Temp) % 10 + 48;
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case Duty_Val:
+		{
+			uint8_t topline[] = "Duty Cycle";
+			uint8_t bottomline[] = "xxxx % ";
+			if (OutputState.DutyCycle_Temp < 0) OutputState.DutyCycle_Temp = 0;
+			if (OutputState.DutyCycle_Temp > 100) OutputState.DutyCycle_Temp = 100;
+			if(OutputState.DutyCycle_Temp != OutputState.DutyCycle) bottomline[6] = '*';
+			bottomline[0] = (OutputState.DutyCycle_Temp/1000) % 10 + 48;
+			bottomline[1] = (OutputState.DutyCycle_Temp/100) % 10 + 48;
+			bottomline[2] = (OutputState.DutyCycle_Temp/10) % 10 + 48;
+			bottomline[3] = (OutputState.DutyCycle_Temp) % 10 + 48;
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			LCD_Write_String(bottomline);
+			break;
+		}
+		case OUT_ON:
+		{
+			uint8_t topline[] = "Signal";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			if(OutputState.On)
+			{
+				uint8_t bottomline[] = "ON - Selected";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "ON";
+				LCD_Write_String(bottomline);
+			}
+			break;
+		}
+		case OUT_OFF:
+		{
+			uint8_t topline[] = "Signal";
+			LCD_Write_String(topline);
+			LCD_NewLine();
+			if(OutputState.On)
+			{
+				uint8_t bottomline[] = "OFF";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "OFF - Selected";
+				LCD_Write_String(bottomline);
+			}
+			break;
+		}
+	}
 }
 
 void LCD_Display_Measurement()
@@ -379,5 +622,785 @@ void LCD_Display_Measurement()
 		LCD_Write_String(bottomline);
 	}
 }
+
+void LCD_Branch_Action(BranchActionType Action)
+{
+	DisplayBranchType CurrentBranch = DisplayState.CurrentBranch;
+	DisplayBranchType NextBranch = DisplayState.CurrentBranch;
+	switch(CurrentBranch)
+	{
+		case Top:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					// Nothing
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					// Already implemented
+					break;
+				}
+			}
+			break;
+		}
+		case Measure:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Top;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = DC_V;
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = Signal;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Signal:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Top;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Type;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case DC_V:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = DC_I;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case DC_I:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = DC_V;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = AC_V;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case AC_V:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = DC_I;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = AC_I;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case AC_I:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Measure;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = AC_V;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Parameter:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Signal;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Amp;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Type;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = OnOff;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Type:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Signal;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = DC_OUT;
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case OnOff:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Signal;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					NextBranch = OUT_ON;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case DC_OUT:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Type;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = SINUSOIDAL_OUT;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Mode = d;
+					if(OutputState.On) DAC_Update_Output();
+					break;
+				}
+			}
+			break;
+		}
+		case SINUSOIDAL_OUT:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Type;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = DC_OUT;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = PULSE_OUT;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Mode = s;
+					if(OutputState.On) DAC_Update_Output();
+					break;
+				}
+			}
+			break;
+		}
+		case PULSE_OUT:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Type;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = SINUSOIDAL_OUT;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Mode = p;
+					if(OutputState.On) DAC_Update_Output();
+					break;
+				}
+			}
+			break;
+		}
+		case Amp:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Amp_Val;
+					OutputState.Amplitude_Temp = OutputState.Amplitude;
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = Offset;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Offset:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Offset_Val;
+					OutputState.Offset_Temp = OutputState.Offset;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Amp;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = Freq;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Freq:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Freq_Val;
+					OutputState.Frequency_Temp = OutputState.Frequency;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Offset;
+					break;
+				}
+				case Right:
+				{
+					NextBranch = Duty;
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Duty:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Parameter;
+					break;
+				}
+				case Down:
+				{
+					NextBranch = Duty_Val;
+					OutputState.DutyCycle_Temp = OutputState.DutyCycle;
+					break;
+				}
+				case Left:
+				{
+					NextBranch = Freq;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					// Nothing
+					break;
+				}
+			}
+			break;
+		}
+		case Amp_Val:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Amp;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					OutputState.Amplitude_Temp -= 100;
+					break;
+				}
+				case Right:
+				{
+					OutputState.Amplitude_Temp += 100;
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Amplitude = OutputState.Amplitude_Temp;
+					break;
+				}
+			}
+			break;
+		}
+		case Offset_Val:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Offset;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					OutputState.Offset_Temp -= 100;
+					break;
+				}
+				case Right:
+				{
+					OutputState.Offset_Temp += 100;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Offset = OutputState.Offset_Temp;
+					break;
+				}
+			}
+			break;
+		}
+		case Freq_Val:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Freq;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					OutputState.Frequency_Temp -= 100;
+					break;
+				}
+				case Right:
+				{
+					OutputState.Frequency_Temp += 100;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.Frequency = OutputState.Frequency_Temp;
+					break;
+				}
+			}
+			break;
+		}
+		case Duty_Val:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = Duty;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					OutputState.DutyCycle_Temp -= 10;
+					break;
+				}
+				case Right:
+				{
+					OutputState.DutyCycle_Temp += 10;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.DutyCycle = OutputState.DutyCycle_Temp;
+					break;
+				}
+			}
+			break;
+		}
+		case OUT_ON:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = OnOff;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					// Nothing
+					break;
+				}
+				case Right:
+				{
+					NextBranch = OUT_OFF;
+					break;
+				}
+				case Enter:
+				{
+					OutputState.On = true;
+					DAC_Update_Output();
+					break;
+				}
+			}
+			break;
+		}
+		case OUT_OFF:
+		{
+			switch(Action)
+			{
+				case Up:
+				{
+					NextBranch = OnOff;
+					break;
+				}
+				case Down:
+				{
+					// Nothing
+					break;
+				}
+				case Left:
+				{
+					NextBranch = OUT_ON;
+					break;
+				}
+				case Right:
+				{
+					// Nothing
+					break;
+				}
+				case Enter:
+				{
+					OutputState.On = false;
+					DAC_Stop();
+					break;
+				}
+			}
+			break;
+		}
+	}
+	if(NextBranch != DisplayState.CurrentBranch)
+	{
+		DisplayState.CurrentBranch = NextBranch;
+	}
+	LCD_Display_Menu();
+}
+
+// Top, Measure, Signal, DC_V, DC_I, AC_V, AC_I, Type, Parameter, OnOff
+
+//void LCD_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

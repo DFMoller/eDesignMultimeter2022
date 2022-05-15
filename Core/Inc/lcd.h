@@ -12,11 +12,14 @@
 
 typedef enum DisplayStates {Menu, Measurement, Output} DisplayMode;
 typedef enum DisplayLines {Topline, Bottomline} DisplayLine;
+typedef enum DisplayBranches {Top, Measure, Signal, DC_V, DC_I, AC_V,  AC_I, Type, Parameter, OnOff, OUT_ON, OUT_OFF, DC_OUT, SINUSOIDAL_OUT, PULSE_OUT, Amp, Amp_Val, Offset, Offset_Val, Freq, Freq_Val, Duty, Duty_Val} DisplayBranchType;
+typedef enum BranchActions {Up, Down, Left, Right, Enter} BranchActionType;
 
 typedef struct DisplayTemplate{
 	enum DisplayStates Mode;
 	enum DisplayStates LastMode;
 	enum DisplayLines CurrentLine;
+	enum DisplayBranches CurrentBranch;
 	uint8_t ToplineCharacters;
 	uint8_t BottomlineCharacters;
 	uint8_t PrintFlag;
@@ -47,6 +50,7 @@ void LCD_Shift_Right();
 void LCD_Shift_Home();
 void LCD_AutoScroll();
 void LCD_Cursor_Home();
+void LCD_Branch_Action(BranchActionType Action);
 
 
 #endif /* INC_LCD_H_ */

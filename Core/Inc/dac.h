@@ -23,6 +23,10 @@ typedef struct OutputTemplate{
 	uint16_t Offset;
 	uint32_t ARR_Val;
 	uint8_t DutyCycle;
+	uint16_t Amplitude_Temp;
+	uint16_t Offset_Temp;
+	uint16_t Frequency_Temp;
+	uint8_t DutyCycle_Temp;
 } OutputStateType;
 
 extern OutputStateType OutputState;
@@ -31,6 +35,6 @@ void DAC_Calculate_Buffer();
 void DAC_Set_Output_Frequency();
 void DAC_Start();
 void DAC_Stop();
-void DAC_Refresh_Output();
+void DAC_Update_Output();
 
 #endif /* INC_DAC_H_ */
