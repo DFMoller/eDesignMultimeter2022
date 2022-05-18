@@ -18,23 +18,26 @@ UartStructType UartState;
 
 void UART_Interpret_Rx_Message()
 {
+	for(int i = 0; i < 10; i++){
+		UartState.rx_bytes_copy[i] = UartState.rx_bytes[i];
+	}
 	if(UartState.rx_bytes_length > 7)
 	{
-		if(UartState.rx_bytes[2] == '*')
+		if(UartState.rx_bytes_copy[2] == '*')
 		{
 			// Requests
-			switch(UartState.rx_bytes[4])
+			switch(UartState.rx_bytes_copy[4])
 			{
 				case 'm':
 					// Request Measurement
-					UART_Request_Measurement(UartState.rx_bytes[6]);
+					UART_Request_Measurement(UartState.rx_bytes_copy[6]);
 					break;
 				case 's':
 					// Request Status
-					if(UartState.rx_bytes[6] == '1'){
+					if(UartState.rx_bytes_copy[6] == '1'){
 						if(!OutputState.On) DAC_Start();
 					}
-					else if(UartState.rx_bytes[6] == '0'){
+					else if(UartState.rx_bytes_copy[6] == '0'){
 						if(OutputState.On) DAC_Stop();
 					}
 					UART_Request_Status();
@@ -45,15 +48,15 @@ void UART_Interpret_Rx_Message()
 					break;
 			}
 		}
-		else if(UartState.rx_bytes[2] == '$'){
+		else if(UartState.rx_bytes_copy[2] == '$'){
 			// Set Measurement Mode
-			UART_Set_Measurement_Mode(UartState.rx_bytes[4], UartState.rx_bytes[5]);
-		}else if(UartState.rx_bytes[2] == '^'){
+			UART_Set_Measurement_Mode(UartState.rx_bytes_copy[4], UartState.rx_bytes_copy[5]);
+		}else if(UartState.rx_bytes_copy[2] == '^'){
 			// Set output Parameter
-			UART_Set_Output_Parameter(UartState.rx_bytes, UartState.rx_bytes_length);
-		}else if(UartState.rx_bytes[2] == '#'){
+			UART_Set_Output_Parameter(UartState.rx_bytes_copy, UartState.rx_bytes_length);
+		}else if(UartState.rx_bytes_copy[2] == '#'){
 			// Display on LCD
-			UART_Display_On_LCD(UartState.rx_bytes[4], UartState.rx_bytes[6]);
+			UART_Display_On_LCD(UartState.rx_bytes_copy[4], UartState.rx_bytes_copy[6]);
 		}
 	}
 }
@@ -82,9 +85,9 @@ void UART_Request_Measurement(uint8_t parameter)
 		a = MeasurementState.Amplitude;
 		o = MeasurementState.Offset;
 		f = MeasurementState.Frequency;
-	} else {
-		a = CurrentState.Amplitude;
-		o = CurrentState.Offset;
+	} else if (MeasurementState.Mode == DI || MeasurementState.Mode == AI) {
+		a = CurrentState.Amplitude/1000;
+		o = CurrentState.Offset/1000;
 		f = CurrentState.Frequency;
 	}
 	switch(parameter){
@@ -163,15 +166,19 @@ void UART_Set_Measurement_Mode(uint8_t key1, uint8_t key2){
 	if(key1 == 'D' && key2 == 'V'){
 		// DC Voltage
 		MeasurementState.Mode = DV;
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 	} else if (key1 == 'A' && key2 == 'V'){
 		// AC Voltage
 		MeasurementState.Mode = AV;
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 	} else if (key1 == 'D' && key2 == 'I'){
 		// DC Current
 		MeasurementState.Mode = DI;
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
 	} else if (key1 == 'A' && key2 == 'I'){
 		// AC Current
 		MeasurementState.Mode = AI;
+		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
 	}
 //	DisplayState.DisplayMeasurementsFlag = true;
 	LCD_changeDisplayMode(Measurement);
@@ -221,5 +228,5 @@ void UART_Set_Output_Parameter(uint8_t *rx_array, uint8_t length)
 			break;
 	}
 	LCD_changeDisplayMode(Measurement);
-	if(OutputState.On) DAC_Update_Output();
+	DAC_Update_Output();
 }

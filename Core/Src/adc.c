@@ -31,7 +31,7 @@ void ADC_Main_Function()
 		int16_t diff = 0;
 		int16_t prev_diff = 0;
 		uint16_t mid_passes = 0;
-		// 1000 measurements at 5kHz take 200ms
+		// 1000 measurements at 20kHz take 50ms
 		for(int x = 0; x < 1000; x++)
 		{
 			total += adc_array[x];
@@ -55,7 +55,7 @@ void ADC_Main_Function()
 			}
 			prev_diff = diff;
 		}
-		MeasurementState.Period = 50000/(mid_passes);
+		MeasurementState.Period = 50000/(mid_passes/2); // us
 		MeasurementState.Frequency = 1000000/MeasurementState.Period;
 		MeasurementState.Amplitude = max - min;
 	}
@@ -66,8 +66,11 @@ void ADC_Main_Function()
 		HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 		raw = HAL_ADC_GetValue(&hadc1);
 		HAL_ADC_Stop(&hadc1);
-		millivolts = raw*3300/4095;
-//		millivolts += 100*millivolts/1000; // Calibration
+		millivolts = (float)((float)raw*3300.0/4095.0);
+		if(millivolts > 50)
+		{
+			millivolts += (float)((110.0 + 137.0*((float)millivolts - 100.0)/(2000.0 - 100.0)));
+		}
 		adc_array[adc_count] = millivolts;
 		adc_count++;
 	}

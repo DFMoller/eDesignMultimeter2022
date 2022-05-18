@@ -11,6 +11,7 @@
 typedef struct UartStructTemplate{
 	uint8_t rx_byte[1];
 	uint8_t rx_bytes[10];
+	uint8_t rx_bytes_copy[10];
 	uint8_t rx_bytes_counter;
 	uint8_t rx_bytes_length;
 	uint8_t message_received;

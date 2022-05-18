@@ -19,7 +19,6 @@ typedef struct OutputTemplate{
 	enum OutputModes Mode;
 	uint16_t Amplitude;
 	uint16_t Frequency;
-	uint16_t DCValue;
 	uint16_t Offset;
 	uint32_t ARR_Val;
 	uint8_t DutyCycle;

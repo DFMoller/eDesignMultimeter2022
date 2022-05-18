@@ -14,6 +14,6 @@ lcd.c:215:6:LCD_Shift_Right	8	static
 lcd.c:222:6:LCD_Shift_Home	16	static
 lcd.c:231:6:LCD_Cursor_Home	8	static
 lcd.c:240:6:LCD_changeDisplayMode	16	static
-lcd.c:274:6:LCD_Display_Menu	488	static
-lcd.c:523:6:LCD_Display_Measurement	160	static
-lcd.c:626:6:LCD_Branch_Action	24	static
+lcd.c:271:6:LCD_Display_Menu	552	static
+lcd.c:544:6:LCD_Display_Measurement	176	static
+lcd.c:659:6:LCD_Branch_Action	24	static

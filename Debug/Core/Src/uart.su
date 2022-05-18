@@ -1,6 +1,6 @@
-uart.c:19:6:UART_Interpret_Rx_Message	8	static
-uart.c:61:6:UART_Display_On_LCD	16	static
-uart.c:74:6:UART_Request_Measurement	48	static
-uart.c:123:6:UART_Request_Status	24	static
-uart.c:162:6:UART_Set_Measurement_Mode	16	static
-uart.c:180:6:UART_Set_Output_Parameter	24	static
+uart.c:19:6:UART_Interpret_Rx_Message	16	static
+uart.c:64:6:UART_Display_On_LCD	16	static
+uart.c:77:6:UART_Request_Measurement	48	static
+uart.c:126:6:UART_Request_Status	24	static
+uart.c:165:6:UART_Set_Measurement_Mode	16	static
+uart.c:187:6:UART_Set_Output_Parameter	24	static

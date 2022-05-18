@@ -25,7 +25,7 @@ typedef struct DisplayTemplate{
 	uint8_t PrintFlag;
 	uint8_t PrintByte;
 	uint8_t RefreshFlag;
-	uint8_t AutoScrollCounter;
+	uint8_t RefreshCounter;
 	uint8_t DisplayPosition;
 } DisplayStateType;
 

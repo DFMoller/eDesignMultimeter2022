@@ -163,7 +163,6 @@ int main(void)
 	OutputState.Amplitude = 1000;
 	OutputState.Offset = 1200;
 	OutputState.Frequency = 1000;
-	OutputState.DCValue = 1000;
 	OutputState.DutyCycle = 25;
 
 	MeasurementState.Mode = DV;
@@ -179,7 +178,7 @@ int main(void)
 
 	DisplayState.PrintFlag = 0;
 	DisplayState.RefreshFlag = 0;
-	DisplayState.AutoScrollCounter = 0;
+	DisplayState.RefreshCounter = 0;
 	DisplayState.DisplayPosition = 0;
 	DisplayState.ToplineCharacters = 0;
 	DisplayState.BottomlineCharacters = 0;
@@ -252,6 +251,9 @@ int main(void)
 	// Init DAC Timer
 	HAL_TIM_Base_Start(&htim2);
 
+	// Update DAC to ensure it starts off
+	DAC_Update_Output();
+
 	//Testing
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4, GPIO_PIN_SET);
 
@@ -269,17 +271,17 @@ int main(void)
 	  {
 		  if(DisplayState.Mode == Measurement)
 		  {
-			  LCD_Display_Measurement();
-//			  if(MeasurementState.Mode == AV || MeasurementState.Mode == AI)
-			  if(MeasurementState.Mode == AV || (OutputState.On && OutputState.Mode != 'd'))
+			  DisplayState.RefreshCounter ++;
+			  if(DisplayState.RefreshCounter > 2)
 			  {
-				  DisplayState.AutoScrollCounter ++;
-				  if(DisplayState.AutoScrollCounter > 2)
+				  LCD_Display_Measurement();
+				  if(MeasurementState.Mode == AV || (OutputState.On && OutputState.Mode != 'd') || MeasurementState.Mode == AI)
 				  {
 					  LCD_AutoScroll();
-					  DisplayState.AutoScrollCounter = 0;
 				  }
+				  DisplayState.RefreshCounter = 0;
 			  }
+
 		  }
 		  DisplayState.RefreshFlag = 0;
 	  }
@@ -763,7 +765,7 @@ static void MX_TIM17_Init(void)
   htim17.Instance = TIM17;
   htim17.Init.Prescaler = 7200-1;
   htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim17.Init.Period = 5000-1;
+  htim17.Init.Period = 2500-1;
   htim17.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim17.Init.RepetitionCounter = 0;
   htim17.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;

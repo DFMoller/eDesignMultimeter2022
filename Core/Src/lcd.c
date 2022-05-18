@@ -245,7 +245,6 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		// Change to Menu Display State
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 		LCD_Display_Menu();
 		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Menu;
@@ -255,7 +254,6 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		// Change to Measurement Display State
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 		LCD_Display_Measurement();
 		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Measurement;
@@ -265,7 +263,6 @@ void LCD_changeDisplayMode(DisplayMode newDisplayMode)
 		// Change to Output Display State
 		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
 		DisplayState.LastMode = DisplayState.Mode;
 		DisplayState.Mode = Output;
 	}
@@ -303,37 +300,61 @@ void LCD_Display_Menu()
 		case DC_V:
 		{
 			uint8_t topline[] = "DC Voltage";
-			uint8_t bottomline[] = "Mode";
 			LCD_Write_String(topline);
 			LCD_NewLine();
-			LCD_Write_String(bottomline);
+			if(MeasurementState.Mode == DV)
+			{
+				uint8_t bottomline[] = "Mode - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Mode";
+				LCD_Write_String(bottomline);
+			}
 			break;
 		}
 		case DC_I:
 		{
 			uint8_t topline[] = "DC Current";
-			uint8_t bottomline[] = "Mode";
 			LCD_Write_String(topline);
 			LCD_NewLine();
-			LCD_Write_String(bottomline);
+			if(MeasurementState.Mode == DI)
+			{
+				uint8_t bottomline[] = "Mode - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Mode";
+				LCD_Write_String(bottomline);
+			}
 			break;
 		}
 		case AC_V:
 		{
 			uint8_t topline[] = "AC Voltage";
-			uint8_t bottomline[] = "Mode";
 			LCD_Write_String(topline);
 			LCD_NewLine();
-			LCD_Write_String(bottomline);
+			if(MeasurementState.Mode == AV)
+			{
+				uint8_t bottomline[] = "Mode - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Mode";
+				LCD_Write_String(bottomline);
+			}
 			break;
 		}
 		case AC_I:
 		{
 			uint8_t topline[] = "AC Current";
-			uint8_t bottomline[] = "Mode";
 			LCD_Write_String(topline);
 			LCD_NewLine();
-			LCD_Write_String(bottomline);
+			if(MeasurementState.Mode == AI)
+			{
+				uint8_t bottomline[] = "Mode - Active";
+				LCD_Write_String(bottomline);
+			} else {
+				uint8_t bottomline[] = "Mode";
+				LCD_Write_String(bottomline);
+			}
 			break;
 		}
 		case Type:
@@ -566,7 +587,19 @@ void LCD_Display_Measurement()
 		}
 		case AI:
 		{
-			uint8_t topline[] = "AC Current";
+			uint8_t topline[] = "O:xxx.xmA,A:xxx.xmA,F:xxxxHz";
+			topline[2] = ((CurrentState.Offset/100000) % 10) + 48;
+			topline[3] = ((CurrentState.Offset/10000) % 10) + 48;
+			topline[4] = ((CurrentState.Offset/1000) % 10) + 48;
+			topline[6] = ((CurrentState.Offset/100) % 10) + 48;
+			topline[12] = ((CurrentState.Amplitude/100000) % 10) + 48;
+			topline[13] = ((CurrentState.Amplitude/10000) % 10) + 48;
+			topline[14] = ((CurrentState.Amplitude/1000) % 10) + 48;
+			topline[16] = ((CurrentState.Amplitude/100) % 10) + 48;
+			topline[22] = ((CurrentState.Frequency/1000) % 10) + 48;
+			topline[23] = ((CurrentState.Frequency/100) % 10) + 48;
+			topline[24] = ((CurrentState.Frequency/10) % 10) + 48;
+			topline[25] = ((CurrentState.Frequency) % 10) + 48;
 			LCD_Write_String(topline);
 			break;
 		}
@@ -751,7 +784,8 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					// Nothing
+					MeasurementState.Mode = DV;
+					HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 					break;
 				}
 			}
@@ -783,7 +817,8 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					// Nothing
+					MeasurementState.Mode = DI;
+					HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
 					break;
 				}
 			}
@@ -815,7 +850,8 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					// Nothing
+					MeasurementState.Mode = AV;
+					HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_RESET);
 					break;
 				}
 			}
@@ -847,7 +883,8 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					// Nothing
+					MeasurementState.Mode = AI;
+					HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_SET);
 					break;
 				}
 			}
@@ -977,7 +1014,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Mode = d;
-					if(OutputState.On) DAC_Update_Output();
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1010,7 +1047,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Mode = s;
-					if(OutputState.On) DAC_Update_Output();
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1043,7 +1080,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Mode = p;
-					if(OutputState.On) DAC_Update_Output();
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1210,6 +1247,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Amplitude = OutputState.Amplitude_Temp;
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1242,6 +1280,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Offset = OutputState.Offset_Temp;
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1274,6 +1313,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.Frequency = OutputState.Frequency_Temp;
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1306,6 +1346,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				case Enter:
 				{
 					OutputState.DutyCycle = OutputState.DutyCycle_Temp;
+					DAC_Update_Output();
 					break;
 				}
 			}
@@ -1337,8 +1378,7 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					OutputState.On = true;
-					DAC_Update_Output();
+					DAC_Start();
 					break;
 				}
 			}
@@ -1370,7 +1410,6 @@ void LCD_Branch_Action(BranchActionType Action)
 				}
 				case Enter:
 				{
-					OutputState.On = false;
 					DAC_Stop();
 					break;
 				}

@@ -19,18 +19,21 @@ OutputStateType OutputState;
 
 void DAC_Calculate_Buffer()
 {
+	float offset = (float)((float)(OutputState.Offset) * (float)(4096/3300) * 1.165 / 2 + 0.025*((float)OutputState.Offset - 1200.00)*(4096/3300));
+	float amplitude = (float)((float)OutputState.Amplitude/2) * (float)(4096/3300) * (float)((float)(1.165) / 2);
 	if(OutputState.Mode == d)
 	{
 		for(int i=0; i<100; i++)
 		{
-			OutputState.Buffer[i] = (float)((float)(OutputState.Offset) * (float)(4096/3300) * (float)((float)(1000 / 600) / 2));
+//			OutputState.Buffer[i] = (float)((float)(OutputState.Offset) * (float)(4096/3300) * (float)((float)(1000 / 600) / 2));
+			OutputState.Buffer[i] = offset;
 		}
 	}
 	else if (OutputState.Mode == s)
 	{
 		for(int i=0; i<100; i++)
 		{
-			OutputState.Buffer[i] = ((float)((float)OutputState.Amplitude/2)*(float)sin(i*2*(float)(PI/100)) + (float)((float)OutputState.Offset * (float)0.85))*((float)(4096/3300)) * (float)((float)(1.165) / 2);
+			OutputState.Buffer[i] = (float)(amplitude*(float)sin(i*2*(float)(PI/100)) + offset);
 		}
 	}
 	else if (OutputState.Mode == p)
@@ -39,11 +42,11 @@ void DAC_Calculate_Buffer()
 		{
 			if(i < OutputState.DutyCycle)
 			{
-				OutputState.Buffer[i] = (OutputState.Offset + OutputState.Amplitude) * 4096/3300;
+				OutputState.Buffer[i] = offset + amplitude*2;
 			}
 			else
 			{
-				OutputState.Buffer[i] = OutputState.Offset * 4096/3300;
+				OutputState.Buffer[i] = offset;
 			}
 
 		}
@@ -78,6 +81,11 @@ void DAC_Stop()
 
 void DAC_Update_Output()
 {
-	DAC_Stop();
-	DAC_Start();
+	if(OutputState.On)
+	{
+		DAC_Stop();
+		DAC_Start();
+	} else {
+		DAC_Stop();
+	}
 }
